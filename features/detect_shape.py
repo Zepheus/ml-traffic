@@ -5,7 +5,7 @@ from skimage import feature, io
 from skimage.measure import label, regionprops
 from skimage.color import rgb2gray
 
-images = io.imread_collection('data/train/*.png')
+images = io.imread_collection('data/train/red_circles/*.png')
 
 values = []
 names = []
@@ -65,8 +65,8 @@ for flier in bp['fliers']:
 ax.set_xticklabels(names)
 ax.get_xaxis().tick_bottom()
 ax.get_yaxis().tick_left()
+plt.savefig('shape_detect.png', format='png')
 plt.show()
-
 
 # #path = os.path.join('data/train/blue_circles/D1a', '*.png')
 # #collection = io.imread_collection(path)
