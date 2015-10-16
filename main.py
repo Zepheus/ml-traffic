@@ -1,12 +1,12 @@
 import os
-from skimage import io
-
-# Test imports
-from sklearn.naive_bayes import GaussianNB
-import numpy as np
-from sklearn import datasets
 from sys import stdin
 
+# Scientific packages
+import numpy as np
+from skimage import io
+
+# Own packages
+from learn import *
 from preps import *
 from features import *
 from visualize import *
@@ -21,13 +21,9 @@ def testRatioTransform():
     im = preperation.process(im)
     visual.show(im)
 
-def train_test():
-    iris = datasets.load_iris()
-    gnb = GaussianNB()
-    y_pred = gnb.fit(iris.data, iris.target)
-
 def trainAll(directories):
     combiner = FeatureCombiner([HsvFeature(), DetectCircle()])
+    trainer = NaiveBayes()
     feature_by_class = {}
     for directory in directories:
         for dirpath, dirnames, _ in os.walk(directory):
@@ -46,8 +42,7 @@ def trainAll(directories):
     features = np.concatenate([np.array(x[1], dtype=np.float64) for x in tuples])
     classes = np.hstack([np.repeat([i], len(x[1])) for i, x in enumerate(tuples)])
 
-    gnb = GaussianNB()
-    trained = gnb.fit(features, classes) # train on class = index in the tuples list
+    trainer.train(features, classes)
     print('Trained data!')
     while True:
         print('Enter filename:')
@@ -55,7 +50,7 @@ def trainAll(directories):
         try:
             im = io.imread(file)
             features = combiner.process(im)
-            prediction = trained.predict(features)
+            prediction = trainer.predict(features)
             print('Predicted class: %s' % (tuples[prediction][0]))
         except:
             print('Failed processing file.')
