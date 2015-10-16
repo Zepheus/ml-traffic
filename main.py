@@ -22,8 +22,8 @@ def testRatioTransform():
     visual.show(im)
 
 def trainAll(directories):
-    combiner = FeatureCombiner([HsvFeature(), DetectCircle()])
-    trainer = NaiveBayes()
+    combiner = FeatureCombiner([HsvFeature(), DetectCircle()]) # Feature selection
+    trainer = KNN() # Learning algorithm
     feature_by_class = {}
     for directory in directories:
         for dirpath, dirnames, _ in os.walk(directory):
