@@ -59,7 +59,7 @@ def trainAll(directories):
 def trainFolds(directories):
     images = load(directories, permute=True)
     combiner = FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]) # Feature selection
-    trainer = LinearSVCTrainer() # Learning algorithm
+    trainer = GaussianNaiveBayes() # Learning algorithm
     ratios = folds(images, combiner, trainer, 3, True)
     print('average errorRatio is %f' % np.mean(ratios))
 

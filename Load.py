@@ -2,6 +2,7 @@ import os
 import numpy as np
 from skimage import io
 from sklearn.cross_validation import KFold
+from sklearn.decomposition import PCA
 import sys
 
 class LabelledImage():
@@ -34,8 +35,8 @@ def folds(images,feature,trainer,k=1,useSuperClass=True):
         print('-------- calculating fold %d --------' % i)
         trainData = [images[i] for i in trainIndices]
         testData = [images[i] for i in testIndices]
-        tuples = train(trainData,feature,trainer,useSuperClass)
-        errorRatio, errors = test(testData,feature,trainer,tuples,useSuperClass)
+        (tuples, pca) = train(trainData,feature,trainer,useSuperClass)
+        errorRatio, errors = test(testData,feature,trainer,tuples,useSuperClass, pca)
         print('    error ratio for fold %d is %f' % (i, errorRatio))
         errorRatios.append(errorRatio)
         i = i + 1
@@ -46,6 +47,7 @@ def folds(images,feature,trainer,k=1,useSuperClass=True):
 def train(train,feature,trainer,useSuperClass):
     feature_by_class = {}
     sys.stdout.write('')
+    pca = None
     for idx,image in enumerate(train):
         features = feature.process(image.image)
         classification = image.superLabel if useSuperClass else image.label
@@ -62,15 +64,20 @@ def train(train,feature,trainer,useSuperClass):
     features = np.concatenate([np.array(x[1], dtype=np.float64) for x in tuples])
     classes = np.hstack([np.repeat([i], len(x[1])) for i, x in enumerate(tuples)])
 
+    components = 10
+    pca = PCA(n_components=min(components, len(features[0])))
+    pca.fit(features)
+    features = pca.transform(features)
     trainer.train(features, classes)
     print('    training complete!!')
-    return tuples
+    return (tuples, pca)
 
-def test(test,feature,trainer,classes,useSuperClass):
+def test(test,feature,trainer,classes,useSuperClass, pca):
     errors = []
     for idx, image in enumerate(test):
         sys.stdout.write('\r    test calculation [%d %%]' % (int(100.0*float(idx)/len(test))))
         features = feature.process(image.image)
+        features = pca.transform(features) # perform PCA
         prediction = classes[trainer.predict(features)[0]][0]
         groundTruth = image.superLabel if useSuperClass else image.label
         if (prediction != groundTruth):
