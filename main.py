@@ -57,10 +57,10 @@ def trainAll(directories):
             print('Failed processing file.')
 
 def trainFolds(directories):
-    images = load(directories,permute=True)
-    combiner = FeatureCombiner([HsvFeature(), DetectCircle()]) # Feature selection
-    trainer = KNN() # Learning algorithm
-    ratios = folds(images,combiner,trainer,3,True)
+    images = load(directories, permute=True)
+    combiner = FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]) # Feature selection
+    trainer = LinearSVCTrainer() # Learning algorithm
+    ratios = folds(images, combiner, trainer, 3, True)
     print('average errorRatio is %f' % np.mean(ratios))
 
 
@@ -142,4 +142,4 @@ def testHsv(directories):
 
 #train_test()
 #trainAll(['data/train/diamonds', 'data/train/forbidden'])
-trainFolds(['data/train/rectangles_up/B21','data/train/blue_circles/D10','data/train/stop'])
+trainFolds(['data/train/rectangles_up/B21', 'data/train/blue_circles/D10', 'data/train/stop'])
