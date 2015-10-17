@@ -1,16 +1,19 @@
 import os
+import numpy as np
 from skimage import io
-from sklearn import cross_validation
+from sklearn.cross_validation import KFold
+import sys
 
 class LabelledImage():
 
-    def __init__(self,image,label,superLabel=''):
+    def __init__(self,image,label,filename,superLabel=''):
         self.image = image
         self.label = label
+        self.filename = filename
         self.superLabel = superLabel
 
 
-def load(directories):
+def load(directories,permute=True):
     values = []
     for directory in directories:
         for dirpath, dirnames, _ in os.walk(directory):
@@ -19,14 +22,60 @@ def load(directories):
                 label = os.path.basename(dirpath)
                 superLabel = os.path.basename(os.path.dirname(dirpath))
                 for (image, fn) in zip(images, images.files):
-                    values.append(LabelledImage(image,label,superLabel))
+                    values.append(LabelledImage(image,label,fn,superLabel))
 
-    # permute array
+    return np.random.permutation(values) if permute else values
 
-    return values
+def folds(images,feature,trainer,k=1,useSuperClass=True):
+    kf = KFold(len(images), n_folds=k)
+    errorRatios = []
+    i = 1
+    for trainIndices,testIndices in kf:
+        print('-------- calculating fold %d --------' % i)
+        trainData = [images[i] for i in trainIndices]
+        testData = [images[i] for i in testIndices]
+        tuples = train(trainData,feature,trainer,useSuperClass)
+        errorRatio, errors = test(testData,feature,trainer,tuples,useSuperClass)
+        print('    error ratio for fold %d is %f' % (i, errorRatio))
+        errorRatios.append(errorRatio)
+        i = i + 1
+    print('-------- folds done --------\n')
+    return errorRatios
 
-def folds(images,fitter,k=1):
-    x = [li.image for li in images]
-    y = [li.superlabel for li in images]
-    return cross_validation.cross_val_score(fitter, x, y, cv=k, n_jobs=2)
 
+def train(train,feature,trainer,useSuperClass):
+    feature_by_class = {}
+    sys.stdout.write('')
+    for idx,image in enumerate(train):
+        features = feature.process(image.image)
+        classification = image.superLabel if useSuperClass else image.label
+
+        if classification in feature_by_class:
+            feature_by_class[classification].append(features)
+        else:
+            feature_by_class[classification] = [features]
+        sys.stdout.write('\r    feature calculation [%d %%]' % int(100.0*float(idx)/len(train)))
+        sys.stdout.flush()
+    sys.stdout.write('\r    feature calculation [100 %]\n')
+
+    tuples = list(feature_by_class.items())
+    features = np.concatenate([np.array(x[1], dtype=np.float64) for x in tuples])
+    classes = np.hstack([np.repeat([i], len(x[1])) for i, x in enumerate(tuples)])
+
+    trainer.train(features, classes)
+    print('    training complete!!')
+    return tuples
+
+def test(test,feature,trainer,classes,useSuperClass):
+    errors = []
+    for idx, image in enumerate(test):
+        sys.stdout.write('\r    test calculation [%d %%]' % (int(100.0*float(idx)/len(test))))
+        features = feature.process(image.image)
+        prediction = classes[trainer.predict(features)[0]][0]
+        groundTruth = image.superLabel if useSuperClass else image.label
+        if (prediction != groundTruth):
+            print('\r    [ERROR] for image %s I predicted "%s" but the sign actually was "%s"' % (image.filename,prediction,groundTruth))
+            errors.append([image,prediction,groundTruth])
+    sys.stdout.write('\r    test calculation [100 %]\n')
+
+    return float(len(errors))/len(test),errors

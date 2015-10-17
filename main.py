@@ -10,6 +10,7 @@ from learn import *
 from preps import *
 from features import *
 from visualize import *
+from Load import *
 
 def testRatioTransform():
     preperation = RatioTransform()
@@ -55,6 +56,12 @@ def trainAll(directories):
         except:
             print('Failed processing file.')
 
+def trainFolds(directories):
+    images = load(directories,permute=True)
+    combiner = FeatureCombiner([HsvFeature(), DetectCircle()]) # Feature selection
+    trainer = KNN() # Learning algorithm
+    ratios = folds(images,combiner,trainer,3,True)
+    print('average errorRatio is %f' % np.mean(ratios))
 
 
 def testDetectCircles(directories):
@@ -134,4 +141,5 @@ def testHsv(directories):
 #testHsv(['data/train/rectangles_up/B21','data/train/blue_circles/D10','data/train/stop'])
 
 #train_test()
-trainAll(['data/train/diamonds', 'data/train/forbidden'])
+#trainAll(['data/train/diamonds', 'data/train/forbidden'])
+trainFolds(['data/train/rectangles_up/B21','data/train/blue_circles/D10','data/train/stop'])
