@@ -12,32 +12,34 @@ from features import *
 from visualize import *
 from Load import *
 
+
 def testRatioTransform():
     preperation = RatioTransform()
     visual = ImagePlot()
 
-    #im = io.imread('data/train/rectangles_up/B21/00969_01994.png')
+    # im = io.imread('data/train/rectangles_up/B21/00969_01994.png')
     im = io.imread('data/train/blue_circles/D1b/02583_06123.png')
 
     im = preperation.process(im)
     visual.show(im)
 
+
 def trainAll(directories):
-    combiner = FeatureCombiner([HsvFeature(), DetectCircle()]) # Feature selection
-    trainer = KNN() # Learning algorithm
+    combiner = FeatureCombiner([HsvFeature(), DetectCircle()])  # Feature selection
+    trainer = KNN()  # Learning algorithm
     feature_by_class = {}
     for directory in directories:
         for dirpath, dirnames, _ in os.walk(directory):
-                if not dirnames:
-                    images = io.imread_collection(os.path.join(dirpath, '*.png'))
-                    for (image, fn) in zip(images, images.files):
-                        print('Training %s' % (fn))
-                        features = combiner.process(image)
-                        classification = os.path.basename(os.path.dirname(dirpath))
-                        if classification in feature_by_class:
-                            feature_by_class[classification].append(features)
-                        else:
-                            feature_by_class[classification] = [features]
+            if not dirnames:
+                images = io.imread_collection(os.path.join(dirpath, '*.png'))
+                for (image, fn) in zip(images, images.files):
+                    print('Training %s' % (fn))
+                    features = combiner.process(image)
+                    classification = os.path.basename(os.path.dirname(dirpath))
+                    if classification in feature_by_class:
+                        feature_by_class[classification].append(features)
+                    else:
+                        feature_by_class[classification] = [features]
 
     tuples = list(feature_by_class.items())
     features = np.concatenate([np.array(x[1], dtype=np.float64) for x in tuples])
@@ -56,11 +58,12 @@ def trainAll(directories):
         except:
             print('Failed processing file.')
 
+
 def trainFolds(directories):
     images = load(directories, permute=True)
-    combiner = FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]) # Feature selection
-    trainer = GaussianNaiveBayes() # Learning algorithm
-    ratios = folds(images, combiner, trainer, 3, True)
+    combiner = FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()])  # Feature selection
+    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
+    ratios = folds(images, combiner, trainer, 3, False, 10)  # use 10 PCA components
     print('average errorRatio is %f' % np.mean(ratios))
 
 
@@ -77,15 +80,16 @@ def testDetectCircles(directories):
                 images = io.imread_collection(os.path.join(dirpath, '*.png'))
                 localvalues = []
                 for (image, fn) in zip(images, images.files):
-                    #imageTemp = transform.process(image)
+                    # imageTemp = transform.process(image)
                     featureValue = feature.process(image)
 
                     localvalues.append(featureValue)
                     print('%s, %s, %f' % (os.path.basename(dirpath), fn, featureValue))
                 values.append(localvalues)
-                names.append('%s/%s' % (os.path.basename(os.path.dirname(dirpath)) ,os.path.basename(dirpath)))
+                names.append('%s/%s' % (os.path.basename(os.path.dirname(dirpath)), os.path.basename(dirpath)))
 
-    plot.show(names,values)
+    plot.show(names, values)
+
 
 def testHog(directories):
     feature = HogFeature()
@@ -104,14 +108,15 @@ def testHog(directories):
                     localvalues.append(featureValue[0])
                     print('%s, %s, %f' % (os.path.basename(dirpath), fn, featureValue[0]))
                 values.append(localvalues)
-                names.append('%s/%s' % (os.path.basename(os.path.dirname(dirpath)) ,os.path.basename(dirpath)))
+                names.append('%s/%s' % (os.path.basename(os.path.dirname(dirpath)), os.path.basename(dirpath)))
 
-    plot.show(names,values)
+    plot.show(names, values)
+
 
 def testHsv(directories):
     feature = HsvFeature()
     featureCircle = DetectCircle()
-    plot = ScatterPlot('hue','circleness')
+    plot = ScatterPlot('hue', 'circleness')
 
     values = []
     names = []
@@ -124,22 +129,24 @@ def testHsv(directories):
                     featureValue = feature.process(image)
                     circleness = featureCircle.process(image)
 
-                    localvalues.append([featureValue[0],circleness])
+                    localvalues.append([featureValue[0], circleness])
                     print('%s, %s' % (os.path.basename(dirpath), fn))
                 values.append(localvalues)
-                names.append('%s/%s' % (os.path.basename(os.path.dirname(dirpath)) ,os.path.basename(dirpath)))
+                names.append('%s/%s' % (os.path.basename(os.path.dirname(dirpath)), os.path.basename(dirpath)))
 
-    plot.show(names,values)
+    plot.show(names, values)
 
 
-#im = io.imread('data/train/blue_circles/D1b/02583_06123.png')
+# im = io.imread('data/train/blue_circles/D1b/02583_06123.png')
 
-#f = HogFeature(visualize=True)
-#fd,result = f.process(im)
-#visual = ImagePlot()
-#visual.show(result)
-#testHsv(['data/train/rectangles_up/B21','data/train/blue_circles/D10','data/train/stop'])
+# f = HogFeature(visualize=True)
+# fd,result = f.process(im)
+# visual = ImagePlot()
+# visual.show(result)
+# testHsv(['data/train/rectangles_up/B21','data/train/blue_circles/D10','data/train/stop'])
 
-#train_test()
-#trainAll(['data/train/diamonds', 'data/train/forbidden'])
-trainFolds(['data/train/rectangles_up/B21', 'data/train/blue_circles/D10', 'data/train/stop'])
+# train_test()
+# trainAll(['data/train/diamonds', 'data/train/forbidden'])
+#trainFolds(['data/train/rectangles_up/B21', 'data/train/blue_circles/D10', 'data/train/stop'])
+#trainFolds(['data/train/blue_circles', 'data/train/diamonds', 'data/train/forbidden', 'data/train/red_circles'])
+trainFolds(['data/train'])
