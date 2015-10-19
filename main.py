@@ -1,4 +1,4 @@
-from learn import *
+from os.path import basename
 
 # Own packages
 from learn import *
@@ -7,7 +7,8 @@ from Load import *
 from image_loader import *
 from cross_validation import cross_validate
 
-def train_and_predict(trainer_function, feature_combiner, number_of_pca_components=0, train_directories=['data/train'], test_directories=['data/small']):
+
+def train_and_predict(trainer_function, feature_combiner, number_of_pca_components=0, train_directories=['data/train'], test_directories=['data/test']):
     # Load data
     trainer = trainer_function()
     train_images = load(train_directories, True)
@@ -19,6 +20,7 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
     print('Features extracted')
     # Feature transform
     train_data = [image.features for image in train_images]
+    pca = None
     if number_of_pca_components > 0:
         pca = PCA(n_components=min(number_of_pca_components, len(train_images[0].features)))
         pca.fit(train_data)
@@ -28,9 +30,16 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
     trainer.train(train_data, train_classes)
     print('Training complete!!')
     # Predict class of test images
-    print(trainer.predict_proba(test_images[0].features))
-
-
+    file = open('result.csv', 'w')
+    file.write('Id,%s\n' % str.join(',', trainer.classes))
+    for image in test_images:
+        test_data = image.features
+        if pca:
+            test_data = pca.transform(test_data)
+        predictions = trainer.predict_proba(test_data)
+        identifier = int(os.path.splitext(basename(image.filename))[0])
+        file.write('%d,%s\n' % (identifier, str.join(',', [('%.13f' % p) for p in predictions[0]])))
+    file.close()
 
 def trainFolds(directories):
     images = load(directories, True, permute=True)
@@ -38,8 +47,9 @@ def trainFolds(directories):
     trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
     cross_validate(images, combiner, trainer, 3, False, 10)  # use 10 PCA components
 
+trainer_function = GaussianNaiveBayes
+train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 10,
+                  ['data/train/reversed_triangles/B7', 'data/train/blue_circles/D10', 'data/train/triangles/A13'],
+                  ['data/small'])
 
-#trainer_function = GaussianNaiveBayes
-#train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle()]), 10, ['data/train/blue_circles/D10', 'data/train/blue_circles/D9'], ['data/train/blue_circles/D9'])
-
-trainFolds(['data/train/blue_circles/D10', 'data/train/blue_circles/D9'])
+#trainFolds(['data/train/blue_circles/D10', 'data/train/blue_circles/D9'])

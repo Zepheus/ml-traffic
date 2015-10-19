@@ -29,7 +29,7 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         trainer.train(train_data, train_classes)
         # Predict
         test_data = [image.features for image in test_images]
-        if pca is not None:
+        if pca:
             test_data = pca.transform(test_data)  # perform PCA
         predictions = trainer.predict(test_data)
         # Compare predictions with ground truths
