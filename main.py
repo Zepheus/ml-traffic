@@ -49,7 +49,7 @@ def trainFolds(directories):
 
 trainer_function = GaussianNaiveBayes
 train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 10,
-                  ['data/train/reversed_triangles/B7', 'data/train/blue_circles/D10', 'data/train/triangles/A13'],
-                  ['data/small'])
+                  ['data/train/red_blue_circles/E1'],
+                  ['data/test'])
 
 #trainFolds(['data/train/blue_circles/D10', 'data/train/blue_circles/D9'])

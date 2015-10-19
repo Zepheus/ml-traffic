@@ -33,8 +33,9 @@ def load(directories, is_train_data, permute=True):
 def feature_extraction(images, feature_combiner):
     sys.stdout.write('')
     for idx, image in enumerate(images):
+        sys.stdout.write('\r    feature calculation [%d %%] (%s)'
+                         % (int(100.0 * float(idx) / len(images)), image.filename))
+        sys.stdout.flush()
         if not image.features:
             image.features = feature_combiner.process(image.image)
-        sys.stdout.write('\r    feature calculation [%d %%]' % int(100.0 * float(idx) / len(images)))
-        sys.stdout.flush()
     sys.stdout.write('\r    feature calculation [100 %]\n')

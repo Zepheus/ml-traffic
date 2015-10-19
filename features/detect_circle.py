@@ -12,7 +12,6 @@ from skimage import exposure
 
 
 from features import AbstractFeature
-from visualize import *
 
 class DetectCircle(AbstractFeature):
 
