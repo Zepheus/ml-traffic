@@ -20,11 +20,9 @@ class DetectCircle(AbstractFeature):
     def process(self,im):
         img_gray = rgb2gray(im)
 
-        success = False
-
-        sig = 0.5
-        while not success:
-            edges = canny(img_gray, sigma=sig)
+        sigma = 0.5
+        while True:
+            edges = canny(img_gray, sigma=sigma)
 
             # Detect two radii
             # calculate image diameter
@@ -42,12 +40,15 @@ class DetectCircle(AbstractFeature):
                 success = len(peaks) > 0
                 if success:
                     accums.extend(h[peaks[:, 0], peaks[:, 1]])
-                else:
-                    print('Adjusting sigma...')
-                    sig /= 2 # backoff sigma
-                    break
 
-            if success:
+            if len(accums) == 0:
+                print('Could not find any radii in picture.')
+                if sigma < 0.01:
+                    return 0.5  # Temporary fix
+                else:
+                    sigma /= 2
+                    continue
+            else:
                 idx = np.argsort(accums)[::-1][1]
                 return accums[idx]
 
