@@ -19,21 +19,37 @@ class DetectCircle(AbstractFeature):
 
     def process(self,im):
         img_gray = rgb2gray(im)
-        edges = canny(img_gray, sigma=0.5)
 
-        # Detect two radii
-        # calculate image diameter
-        shape = im.shape
-        diam = math.sqrt(shape[0]**2 + shape[1]**2)
-        radii = np.arange(diam/3, diam * 0.8, 2)
-        hough_res = hough_circle(edges, radii)
+        success = False
 
-        # peaks = peak_local_max(hough_res, num_peaks=1, min_distance=1, threshold_abs=0.01, exclude_border=True)
-        accums = []
-        for radius, h in zip(radii, hough_res):
-            # For each radius, extract two circles
-            peaks = peak_local_max(h, num_peaks=1, min_distance=1)
-            accums.extend(h[peaks[:, 0], peaks[:, 1]])
+        sig = 0.5
+        while not success:
+            edges = canny(img_gray, sigma=sig)
 
-        idx = np.argsort(accums)[::-1][1]
-        return accums[idx]
+            # Detect two radii
+            # calculate image diameter
+            shape = im.shape
+            diam = math.sqrt(shape[0]**2 + shape[1]**2)
+            radii = np.arange(diam/3, diam * 0.8, 2)
+            hough_res = hough_circle(edges, radii)
+
+            # peaks = peak_local_max(hough_res, num_peaks=1, min_distance=1, threshold_abs=0.01, exclude_border=True)
+            accums = []
+
+            for radius, h in zip(radii, hough_res):
+                # For each radius, extract two circles
+                peaks = peak_local_max(h, num_peaks=1, min_distance=1)
+                success = len(peaks) > 0
+                if success:
+                    accums.extend(h[peaks[:, 0], peaks[:, 1]])
+                else:
+                    print('Adjusting sigma...')
+                    sig /= 2 # backoff sigma
+                    break
+
+            if success:
+                idx = np.argsort(accums)[::-1][1]
+                return accums[idx]
+
+
+
