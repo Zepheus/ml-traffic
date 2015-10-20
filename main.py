@@ -48,8 +48,8 @@ def trainFolds(directories):
     cross_validate(images, combiner, trainer, 10, False, 0)  # use 10 folds, no pca
 
 trainer_function = LinearSVCTrainer
-train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
-                  ['data/train'],
-                  ['data/test'])
+#train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
+#                  ['data/train'],
+#                  ['data/test'])
 
-#trainFolds(['data/train'])
+trainFolds(['data/train'])
