@@ -19,6 +19,7 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         feature_extraction(test_images, feature_combiner)
         # Train
         trainer = trainer_function()
+        print('Using ', type(trainer), ' for trainer.')
         train_data = [image.features for image in train_images]
         pca = None
         if number_of_pca_components > 0:

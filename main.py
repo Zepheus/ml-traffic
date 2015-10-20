@@ -44,12 +44,12 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
 def trainFolds(directories):
     images = load(directories, True, permute=True)
     combiner = FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()])  # Feature selection
-    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
-    cross_validate(images, combiner, trainer, 3, False, 10)  # use 10 PCA components
+    trainer = LinearSVCTrainer  # Learning algorithm, make sure this is a function and not an object
+    cross_validate(images, combiner, trainer, 10, False, 0)  # use 10 folds, no pca
 
-trainer_function = GaussianNaiveBayes
-train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 10,
-                  ['data/train/red_blue_circles/E1'],
+trainer_function = LinearSVCTrainer
+train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
+                  ['data/train'],
                   ['data/test'])
 
-#trainFolds(['data/train/blue_circles/D10', 'data/train/blue_circles/D9'])
+#trainFolds(['data/train'])
