@@ -43,13 +43,26 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
 
 def trainFolds(directories):
     images = load(directories, True, permute=True)
-    combiner = FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()])  # Feature selection
-    trainer = LinearSVCTrainer  # Learning algorithm, make sure this is a function and not an object
-    cross_validate(images, combiner, trainer, 10, False, 0)  # use 10 folds, no pca
+    combiner = FeatureCombiner([HsvFeature(),HogFeature(),DetectCircle(),ColorCenter()])  # Feature selection
+    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
+    cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=15)  # use 10 folds, no pca
 
-trainer_function = LinearSVCTrainer
+def featureTest(directories):
+    images = load(directories, True, permute=False)
+    combiner = ColorCenter()  # Feature selection
+    trainer = GaussianNaiveBayes # Learning algorithm, make sure this is a function and not an object
+    values = [combiner.process(im.image) for im in images if im.label == 'D10']
+    values2 = [combiner.process(im.image) for im in images if im.label == 'B21']
+    labels = ['D10','B21']
+    from visualize import ScatterPlot
+    plot =  ScatterPlot()
+    plot.show(labels,[values,values2])
+
+
+
 #train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
 #                  ['data/train'],
 #                  ['data/test'])
 
-trainFolds(['data/train'])
+#trainFolds(['data/train'])
+trainFolds(['data/train/blue_circles','reversed_triangles'])
