@@ -1,27 +1,20 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import math
-
-from skimage import data, color, io
-from skimage.transform import hough_circle
-from skimage.feature import peak_local_max, canny
-from skimage.draw import circle_perimeter
+from skimage.feature import canny
 from skimage.color import rgb2gray
-from skimage.util import img_as_ubyte
 from skimage import exposure
 from skimage.measure import label, regionprops
 
 from features import AbstractFeature
 
+
 class RegionRatio(AbstractFeature):
 
-    def __init__(self):
-        pass
+    def __init__(self,sigma=3):
+        self.sigma = sigma
 
     def process(self, im):
         img_gray = rgb2gray(im)
         img_adapted = exposure.equalize_hist(img_gray)
-        edges = canny(img_adapted, sigma=3)
+        edges = canny(img_adapted, sigma=self.sigma)
 
         labeled_image = label(edges)
 

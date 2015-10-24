@@ -42,3 +42,43 @@ def estimateHogPixelsPerCellParameters(directories):
     from visualize import ScatterPlot
     plot = ScatterPlot()
     plot.show(["pixels_per_cell"],[results])
+
+def estimateHogPixelsPerCellParameters(directories):
+    images = load(directories, True, permute=True)
+    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
+    results = []
+    for pixels in [2**x for x in range(1,7)]:
+        combiner = FeatureCombiner([HogFeature(pixels_per_cell=(pixels,pixels))])
+        results.append([pixels ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0,verbose=False)]) # use 10 folds, no pca
+
+    from visualize import ScatterPlot
+    plot = ScatterPlot()
+    plot.show(["pixels_per_cell"],[results])
+
+def estimateHogCellsPerBlockParameters(directories):
+    images = load(directories, True, permute=True)
+    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
+    results = []
+    for cells in [2**x for x in range(1,7)]:
+        combiner = FeatureCombiner([HogFeature(cells_per_block=(cells,cells))])
+        results.append([cells ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0,verbose=False)]) # use 10 folds, no pca
+
+    from visualize import ScatterPlot
+    plot = ScatterPlot()
+    plot.show(["cells_per_block"],[results])
+
+def estimateRegionRatioParameters(directories):
+    images = load(directories, True, permute=True)
+    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
+    results = []
+    for sigma in np.arange(0.1,5,0.1):
+        combiner = FeatureCombiner([RegionRatio(sigma=sigma)])
+        results.append([sigma ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0,verbose=False)]) # use 10 folds, no pca
+
+    from visualize import ScatterPlot
+    plot = ScatterPlot()
+    plot.show(["sigma"],[results])
+
+meta_estimators = [estimatePcaParameters,estimateRegionRatioParameters,estimateHogCellsPerBlockParameters,
+                   estimateHogPixelsPerCellParameters, estimateHogOrientationsParameters
+                   ]
