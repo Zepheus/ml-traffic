@@ -5,21 +5,23 @@ from sklearn.decomposition import PCA
 from image_loader import *
 
 
-def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, number_of_pca_components=0):
+def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, number_of_pca_components=0, verbose=True):
     kf = KFold(len(images), n_folds=k)
     i = 1
     error_ratios = []
     for trainIndices, testIndices in kf:
-        print('-------- calculating fold %d --------' % i)
+        if verbose:
+            print('-------- calculating fold %d --------' % i)
         # Split in folds
         train_images = [images[i] for i in trainIndices]
         test_images = [images[i] for i in testIndices]
         # Feature extraction
-        feature_extraction(train_images, feature_combiner)
-        feature_extraction(test_images, feature_combiner)
+        feature_extraction(train_images, feature_combiner,verbose=verbose)
+        feature_extraction(test_images, feature_combiner,verbose=verbose)
         # Train
         trainer = trainer_function()
-        print('Using ', type(trainer), ' for trainer.')
+        if verbose:
+            print('Using ', type(trainer), ' for trainer.')
         train_data = [image.features for image in train_images]
         pca = None
         if number_of_pca_components > 0:
@@ -38,13 +40,19 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         errors = []
         for image, prediction, ground_truth in zip(test_images, predictions, ground_truths):
             if prediction != ground_truth:
-                print('\r    [ERROR] for image %s I predicted "%s" but the sign actually was "%s"' % (
-                    image.filename, prediction, ground_truth))
+                if verbose:
+                    print('\r    [ERROR] for image %s I predicted "%s" but the sign actually was "%s"' % (image.filename, prediction, ground_truth))
                 errors.append([image, prediction, ground_truth])
-        sys.stdout.write('\r    test calculation [100 %]\n')
+        if verbose:
+            sys.stdout.write('\r    test calculation [100 %]\n')
         error = float(len(errors)) / len(test_images)
-        print('    error ratio of fold: %f' % error)
+        if verbose:
+            print('    error ratio of fold: %f' % error)
         error_ratios.append(error)
         i += 1
-    print('-------- folds done --------\n')
-    print('average errorRatio is %f' % np.mean(error_ratios))
+    result = np.mean(error_ratios)
+    if verbose:
+        print('-------- folds done --------\n')
+        print('average errorRatio is %f' % result)
+    return result
+

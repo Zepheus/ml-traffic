@@ -30,12 +30,15 @@ def load(directories, is_train_data, permute=True):
     return np.random.permutation(values) if permute else values
 
 
-def feature_extraction(images, feature_combiner):
-    sys.stdout.write('')
+def feature_extraction(images, feature_combiner,verbose=True):
+    if verbose:
+        sys.stdout.write('')
     for idx, image in enumerate(images):
-        sys.stdout.write('\r    feature calculation [%d %%] (%s)'
+        if verbose:
+            sys.stdout.write('\r    feature calculation [%d %%] (%s)'
                          % (int(100.0 * float(idx) / len(images)), image.filename))
-        sys.stdout.flush()
+            sys.stdout.flush()
         if not image.features:
             image.features = feature_combiner.process(image.image)
-    sys.stdout.write('\r    feature calculation [100 %]\n')
+    if verbose:
+        sys.stdout.write('\r    feature calculation [100 %]\n')

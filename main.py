@@ -6,6 +6,7 @@ from features import *
 from Load import *
 from image_loader import *
 from cross_validation import cross_validate
+from MetaParameterEstimators import *
 
 
 def train_and_predict(trainer_function, feature_combiner, number_of_pca_components=0, train_directories=['data/train'], test_directories=['data/test']):
@@ -45,7 +46,7 @@ def trainFolds(directories):
     images = load(directories, True, permute=True)
     combiner = FeatureCombiner([HsvFeature(),HogFeature(),DetectCircle(),ColorCenter()])  # Feature selection
     trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
-    cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=15)  # use 10 folds, no pca
+    cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=pca)  # use 10 folds, no pca
 
 def featureTest(directories):
     images = load(directories, True, permute=False)
@@ -59,10 +60,10 @@ def featureTest(directories):
     plot.show(labels,[values,values2])
 
 
-
 #train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
 #                  ['data/train'],
 #                  ['data/test'])
 
 #trainFolds(['data/train'])
-trainFolds(['data/train/blue_circles','reversed_triangles'])
+estimateHogPixelsPerCellParameters(['data/train/blue_circles','data/train/reversed_triangles'])
+#trainFolds(['data/train/blue_circles','reversed_triangles'])
