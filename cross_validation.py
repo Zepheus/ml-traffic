@@ -95,8 +95,9 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
             print('    error ratio of fold: %f' % error)
         error_ratios.append(error)
 
-    result = np.mean(error_ratios)
+    mean_result = np.mean(error_ratios)
+    std_result = np.std(error_ratios)
     if verbose:
         print('-------- folds done --------\n')
-        print('average errorRatio is %f' % result)
-    return result
+        print('mean error_ratio is %f (std: %f)' % (mean_result, std_result))
+    return mean_result
