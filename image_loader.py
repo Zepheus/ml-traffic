@@ -12,8 +12,12 @@ class LabelledImage:
         self.super_label = superLabel
         self.features = None
 
+    def __str__(self):
+        return self.filename
+
 
 def load(directories, is_train_data, permute=True):
+    print('Loading images. Train: %r' % is_train_data)
     values = []
     for directory in directories:
         for dirpath, dirnames, _ in os.walk(directory):
