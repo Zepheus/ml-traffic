@@ -2,10 +2,10 @@ from learn import AbstractLearner
 from sklearn.linear_model import LogisticRegression
 
 
-class LogisticRegression(AbstractLearner):
+class LogisticRegressionTrainer(AbstractLearner):
 
     def __init__(self):
-        self.learner = LogisticRegression()
+        self.learner = LogisticRegression(penalty='l2', multi_class='ovr')
 
     def _train(self, x_train, y_train):
         self.learner = self.learner.fit(x_train, y_train)

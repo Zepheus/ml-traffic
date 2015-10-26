@@ -5,19 +5,25 @@ from sklearn.decomposition import PCA
 from image_loader import *
 
 
-def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, number_of_pca_components=0, verbose=True):
+def split_kfold(images, k):
     kf = KFold(len(images), n_folds=k)
-    i = 1
+    return [([images[i] for i in trainIndices], [images[i] for i in testIndices]) for trainIndices, testIndices in kf]
+
+def split_special(images):
+    pass
+
+def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, number_of_pca_components=0, verbose=True):
+    fold = split_kfold(images, k)
+    print('Split into %d folds' % len(fold))
+
     error_ratios = []
-    for trainIndices, testIndices in kf:
+    for i, (train_images, test_images) in enumerate(fold):
         if verbose:
-            print('-------- calculating fold %d --------' % i)
-        # Split in folds
-        train_images = [images[i] for i in trainIndices]
-        test_images = [images[i] for i in testIndices]
+            print('-------- calculating fold %d --------' % (i + 1))
+
         # Feature extraction
-        feature_extraction(train_images, feature_combiner,verbose=verbose)
-        feature_extraction(test_images, feature_combiner,verbose=verbose)
+        feature_extraction(train_images, feature_combiner, verbose=verbose)
+        feature_extraction(test_images, feature_combiner, verbose=verbose)
         # Train
         trainer = trainer_function()
         if verbose:
@@ -41,7 +47,8 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         for image, prediction, ground_truth in zip(test_images, predictions, ground_truths):
             if prediction != ground_truth:
                 if verbose:
-                    print('\r    [ERROR] for image %s I predicted "%s" but the sign actually was "%s"' % (image.filename, prediction, ground_truth))
+                    print('\r    [ERROR] for image %s I predicted "%s" but the sign actually was "%s"' % (
+                    image.filename, prediction, ground_truth))
                 errors.append([image, prediction, ground_truth])
         if verbose:
             sys.stdout.write('\r    test calculation [100 %]\n')
@@ -49,10 +56,9 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         if verbose:
             print('    error ratio of fold: %f' % error)
         error_ratios.append(error)
-        i += 1
+
     result = np.mean(error_ratios)
     if verbose:
         print('-------- folds done --------\n')
         print('average errorRatio is %f' % result)
     return result
-

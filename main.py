@@ -44,9 +44,9 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
 
 def trainFolds(directories):
     images = load(directories, True, permute=True)
-    combiner = FeatureCombiner([HsvFeature(),HogFeature(),DetectCircle(),ColorCenter()])  # Feature selection
-    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
-    cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=pca)  # use 10 folds, no pca
+    combiner = FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()])  # Feature selection
+    trainer = LogisticRegressionTrainer  # Learning algorithm, make sure this is a function and not an object
+    cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0)  # use 10 folds, no pca
 
 def featureTest(directories):
     images = load(directories, True, permute=False)
@@ -67,6 +67,6 @@ def estimateMetas(directories):
 #                  ['data/train'],
 #                  ['data/test'])
 
-#trainFolds(['data/train'])
-estimateMetas(['data/train/blue_circles','data/train/reversed_triangles'])
+trainFolds(['data/train'])
+#estimateMetas(['data/train/blue_circles','data/train/reversed_triangles'])
 #trainFolds(['data/train/blue_circles','reversed_triangles'])
