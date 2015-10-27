@@ -60,14 +60,13 @@ def featureTest(directories):
     plot.show(labels,[values,values2])
 
 def estimateMetas(directories):
-    estimateHogCellsPerBlockParameters(directories)
-    #for estimator in meta_estimators:
-    #    estimator()
+    for estimator in meta_estimators:
+        estimator(directories)
 
 #train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
 #                  ['data/train'],
 #                  ['data/test'])
 
 trainFolds(['data/train'])
-#estimateMetas(['data/train/blue_circles','data/train/reversed_triangles'])
+estimateMetas(['data/train'])
 #trainFolds(['data/train/blue_circles','reversed_triangles'])
