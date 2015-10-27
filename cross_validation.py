@@ -22,7 +22,7 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         trainer = trainer_function()
         if verbose:
             print('Using ', type(trainer), ' for trainer.')
-        train_data = [image.features for image in train_images]
+        train_data = [image.getFeatureVector() for image in train_images]
         pca = None
         if number_of_pca_components > 0:
             pca = PCA(n_components=min(number_of_pca_components, len(train_images[0].features)))
@@ -31,7 +31,7 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         train_classes = [image.super_label if use_super_class else image.label for image in train_images]
         trainer.train(train_data, train_classes)
         # Predict
-        test_data = [image.features for image in test_images]
+        test_data = [image.getFeatureVector() for image in test_images]
         if pca:
             test_data = pca.transform(test_data)  # perform PCA
         predictions = trainer.predict(test_data)

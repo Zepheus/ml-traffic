@@ -1,6 +1,7 @@
 import numpy as np
+from features import AbstractFeature
 
-class FeatureCombiner:
+class FeatureCombiner(AbstractFeature):
 
     def __init__(self, feature_extractors):
         self.extractors = feature_extractors
@@ -8,7 +9,9 @@ class FeatureCombiner:
     def process(self, im):
         features = []
         for extractor in self.extractors:
-            feature = extractor.process(im)
+            if not im.isSet(extractor):
+                im.set(extractor,extractor.process(im.image))
+            feature = im.get(extractor)
             if isinstance(feature, np.ndarray): # fix for numpy array -> normal array
                 feature = feature.tolist()
             elif not isinstance(feature, list): # fix for scalar -> single array

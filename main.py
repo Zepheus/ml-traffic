@@ -60,8 +60,9 @@ def featureTest(directories):
     plot.show(labels,[values,values2])
 
 def estimateMetas(directories):
-    for estimator in meta_estimators:
-        estimator()
+    estimateHogCellsPerBlockParameters(directories)
+    #for estimator in meta_estimators:
+    #    estimator()
 
 #train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
 #                  ['data/train'],

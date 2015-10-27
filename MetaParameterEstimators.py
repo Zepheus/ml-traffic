@@ -4,81 +4,35 @@ from features import *
 from image_loader import *
 from cross_validation import cross_validate
 
-def estimatePcaParameters(directories):
+def estimateMeta(directories,trainer,rangeValues,label):
     images = load(directories, True, permute=True)
-    combiner = FeatureCombiner([HsvFeature(),HogFeature(),DetectCircle(),ColorCenter()])  # Feature selection
-    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
     results = []
-    for pca_comp in range(100):
-
-        if (pca_comp >= len(images)):
-            break
-        results.append([pca_comp ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=pca_comp,verbose=False)]) # use 10 folds, no pca
+    for v,feature in rangeValues:
+        print("value: %d" % v)
+        results.append([v ,cross_validate(images, feature, trainer, k=10,
+                                          use_super_class=False, number_of_pca_components=0,verbose=False)])
+        for i in images:
+            i.reset(feature)
 
     from visualize import ScatterPlot
     plot = ScatterPlot()
-    plot.show(["pca"],[results])
+    plot.show([label],[results])
 
 def estimateHogOrientationsParameters(directories):
-    images = load(directories, True, permute=True)
-    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
-    results = []
-    for ori in range(1,20):
-        combiner = FeatureCombiner([HogFeature(orientations=ori)])
-        results.append([ori ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0,verbose=False)]) # use 10 folds, no pca
-
-    from visualize import ScatterPlot
-    plot = ScatterPlot()
-    plot.show(["orientations"],[results])
+    estimateMeta(directories,GaussianNaiveBayes,[(ori,HogFeature(orientations=ori)) for ori in range(1,20)],"orientations")
 
 def estimateHogPixelsPerCellParameters(directories):
-    images = load(directories, True, permute=True)
-    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
-    results = []
-    for pixels in [2**x for x in range(1,7)]:
-        combiner = FeatureCombiner([HogFeature(pixels_per_cell=(pixels,pixels))])
-        results.append([pixels ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0,verbose=False)]) # use 10 folds, no pca
-
-    from visualize import ScatterPlot
-    plot = ScatterPlot()
-    plot.show(["pixels_per_cell"],[results])
-
-def estimateHogPixelsPerCellParameters(directories):
-    images = load(directories, True, permute=True)
-    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
-    results = []
-    for pixels in [2**x for x in range(1,7)]:
-        combiner = FeatureCombiner([HogFeature(pixels_per_cell=(pixels,pixels))])
-        results.append([pixels ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0,verbose=False)]) # use 10 folds, no pca
-
-    from visualize import ScatterPlot
-    plot = ScatterPlot()
-    plot.show(["pixels_per_cell"],[results])
+    estimateMeta(directories,GaussianNaiveBayes,[(v,HogFeature(pixels_per_cell=(v,v))) for v in [2,4,5,10,20,50,100]],"pixels per cell")
 
 def estimateHogCellsPerBlockParameters(directories):
-    images = load(directories, True, permute=True)
-    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
-    results = []
-    for cells in [2**x for x in range(1,7)]:
-        combiner = FeatureCombiner([HogFeature(cells_per_block=(cells,cells))])
-        results.append([cells ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0,verbose=False)]) # use 10 folds, no pca
-
-    from visualize import ScatterPlot
-    plot = ScatterPlot()
-    plot.show(["cells_per_block"],[results])
+    estimateMeta(directories,GaussianNaiveBayes,[(v,HogFeature(cells_per_block=(v,v))) for v in [1,2,3,4,5,6,7,8,9,10]],"pixels per cell")
 
 def estimateRegionRatioParameters(directories):
-    images = load(directories, True, permute=True)
-    trainer = GaussianNaiveBayes  # Learning algorithm, make sure this is a function and not an object
-    results = []
-    for sigma in np.arange(0.1,5,0.1):
-        combiner = FeatureCombiner([RegionRatio(sigma=sigma)])
-        results.append([sigma ,cross_validate(images, combiner, trainer, k=10, use_super_class=False, number_of_pca_components=0,verbose=False)]) # use 10 folds, no pca
+    estimateMeta(directories,GaussianNaiveBayes,[(v,RegionRatio(sigma=v)) for v in range(0.1,5,0.1)],"sigma")
 
-    from visualize import ScatterPlot
-    plot = ScatterPlot()
-    plot.show(["sigma"],[results])
+def estimateDetectCircleParameters(directories):
+    estimateMeta(directories,GaussianNaiveBayes,[(v,DetectCircle(sigma=v)) for v in range(0.1,5,0.1)],"sigma")
 
-meta_estimators = [estimatePcaParameters,estimateRegionRatioParameters,estimateHogCellsPerBlockParameters,
+meta_estimators = [estimateRegionRatioParameters,estimateHogCellsPerBlockParameters,
                    estimateHogPixelsPerCellParameters, estimateHogOrientationsParameters
                    ]

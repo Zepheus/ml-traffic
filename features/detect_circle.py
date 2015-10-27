@@ -15,13 +15,13 @@ from features import AbstractFeature
 
 class DetectCircle(AbstractFeature):
 
-    def __init__(self):
-        pass
+    def __init__(self,sigma=3):
+        self.sigma = sigma
 
     def process(self, im):
         img_gray = rgb2gray(im)
         img_adapted = exposure.equalize_hist(img_gray)
-        edges = canny(img_adapted, sigma=3)
+        edges = canny(img_adapted, sigma=self.sigma)
 
         # Detect two radii
         # calculate image diameter

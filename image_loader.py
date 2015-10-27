@@ -10,7 +10,33 @@ class LabelledImage:
         self.filename = filename
         self.label = label
         self.super_label = superLabel
-        self.features = None
+        self.features = {}
+
+    def isSet(self,feature):
+        if feature.key() == "FeatureCombiner": return False
+
+        return self.features.__contains__(feature.key()) and self.features[feature.key()] is not None
+
+    def set(self,feature,value):
+        if feature.key() == "FeatureCombiner": raise "cannot set value for combiner"
+
+        if not self.isSet(feature):
+            self.features[feature.key()] = value
+
+    def get(self,feature):
+        if feature.key() == "FeatureCombiner": raise "cannot get value for combiner"
+
+        return self.features[feature.key()]
+
+    def getFeatureVector(self):
+        return np.concatenate([value for key,value in sorted(self.features.items())])
+
+    def reset(self,feature):
+        if feature.key() == "FeatureCombiner":
+            for f in feature.extractors:
+                self.reset(f)
+        else:
+            self.features[feature.key()] = None
 
 
 def load(directories, is_train_data, permute=True):
@@ -30,7 +56,7 @@ def load(directories, is_train_data, permute=True):
     return np.random.permutation(values) if permute else values
 
 
-def feature_extraction(images, feature_combiner,verbose=True):
+def feature_extraction(images, feature,verbose=True):
     if verbose:
         sys.stdout.write('')
     for idx, image in enumerate(images):
@@ -38,7 +64,10 @@ def feature_extraction(images, feature_combiner,verbose=True):
             sys.stdout.write('\r    feature calculation [%d %%] (%s)'
                          % (int(100.0 * float(idx) / len(images)), image.filename))
             sys.stdout.flush()
-        if not image.features:
-            image.features = feature_combiner.process(image.image)
+        if feature.key() == "FeatureCombiner":
+            feature.process(image)
+        else:
+            if not image.isSet(feature):
+                image.set(feature,feature.process(image.image))
     if verbose:
         sys.stdout.write('\r    feature calculation [100 %]\n')
