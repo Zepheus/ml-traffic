@@ -38,4 +38,4 @@ class DetectCircle(AbstractFeature):
 
 
         idx = np.argsort(accums)[::-1][1]
-        return accums[idx]
+        return [accums[idx]]

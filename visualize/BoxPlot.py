@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 
 class BoxPlot(AbstractVisual):
 
-    def show(self,labels,data,saveName=""):
+    def _prep(self,labels,data):
         # Create a figure instance
-        fig = plt.figure(1, figsize=(9, 6))
+        self.fig = plt.figure(1, figsize=(9, 6))
 
-        ax = fig.add_subplot(111)
+        ax = self.fig.add_subplot(111)
 
         ## add patch_artist=True option to ax.boxplot()
         ## to get fill color
@@ -41,9 +41,4 @@ class BoxPlot(AbstractVisual):
         ax.get_yaxis().tick_left()
         #ax.set_aspect(1/len(labels))
 
-        if saveName:
-            plt.savefig(saveName + ".png", format='png')
-
-        plt.tight_layout()
-        plt.show()
 

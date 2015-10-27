@@ -10,13 +10,13 @@ class ScatterPlot(AbstractVisual):
         self.ylabel = ylabel
         self.zlabel = zlabel
 
-    def show(self,labels,data,saveName=""):
-        fig = plt.figure(1, figsize=(9, 6))
+    def _prep(self,labels,data):
+        self.fig = plt.figure(1, figsize=(9, 6))
 
         if (self.zlabel):
-            ax = fig.add_subplot(111,projection='3d')
+            ax = self.fig.add_subplot(111,projection='3d')
         else:
-            ax = fig.add_subplot(111)
+            ax = self.fig.add_subplot(111)
 
         for label,d in zip(labels,data):
             np_data= np.array(d)
@@ -33,5 +33,3 @@ class ScatterPlot(AbstractVisual):
             ax.set_zlabel(self.zlabel)
 
         plt.legend(loc='upper left')
-
-        plt.show()

@@ -4,10 +4,9 @@ import matplotlib.pyplot as plt
 
 class ImagePlot(AbstractVisual):
 
-    def show(self,data):
+    def _prep(self,labels,data):
         im = data
 
-        fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(5, 2))
+        self.fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(5, 2))
 
         ax.imshow(im, cmap=plt.cm.jet)
-        plt.show()
