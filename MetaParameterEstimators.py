@@ -30,7 +30,9 @@ def estimateHogCellsPerBlockParameters(directories):
     estimateMeta(directories,GaussianNaiveBayes,[(v,HogFeature(cells_per_block=(v,v))) for v in [1,2,3,4,5,6,7,8,9,10]],"pixels per cell")
 
 def estimateRegionRatioParameters(directories):
-    estimateMeta(directories,GaussianNaiveBayes,[(v,RegionRatio(sigma=v)) for v in np.arange(0.1,5,0.1)],"sigma")
+    features = [HogFeature()]
+    estimateMeta(directories,GaussianNaiveBayes,[(v,features.append(RegionRatio(sigma=v))) for v in np.arange(0.1,5,0.1)],"sigma")
 
 def estimateDetectCircleParameters(directories):
-    estimateMeta(directories,GaussianNaiveBayes,[(v,DetectCircle(sigma=v)) for v in np.arange(0.1,5,0.1)],"sigma")
+    features = [HogFeature()]
+    estimateMeta(directories,GaussianNaiveBayes,[(v,features.append(DetectCircle(sigma=v))) for v in np.arange(0.1,5,0.1)],"sigma")

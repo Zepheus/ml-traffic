@@ -8,7 +8,7 @@ class AbstractVisual(metaclass=ABCMeta):
         pass
 
     def show(self,labels,data):
-        plt.ion()
+        #plt.ion()
         self._prep(labels,data)
         plt.tight_layout()
         plt.show()
