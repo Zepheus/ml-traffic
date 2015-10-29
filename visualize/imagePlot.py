@@ -9,4 +9,7 @@ class ImagePlot(AbstractVisual):
 
         self.fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(5, 2))
 
-        ax.imshow(im, cmap=plt.cm.jet)
+        if labels == 'gray':
+            ax.imshow(im, cmap=plt.cm.gray)
+        else:
+            ax.imshow(im, cmap=plt.cm.jet)
