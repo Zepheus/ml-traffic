@@ -61,7 +61,7 @@ def featureTest(directories):
 
 def estimateMetas(directories):
     meta_estimators = [estimateHogOrientationsParameters,estimateHogPixelsPerCellParameters,
-                       estimateHogCellsPerBlockParameters, estimateRegionRatioParameters,
+                       estimateHogCellsPerBlockParameters,
                        estimateDetectCircleParameters
                    ]
 
@@ -73,5 +73,5 @@ def estimateMetas(directories):
 #                  ['data/test'])
 
 #trainFolds(['data/train'])
-estimateMetas(['data/train'])
+#estimateMetas(['data/train'])
 #trainFolds(['data/train/blue_circles','reversed_triangles'])
