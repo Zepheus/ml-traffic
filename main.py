@@ -57,11 +57,11 @@ def trainFolds(directories):
 def estimateMetas(directories):
     meta_estimators = [estimateHogOrientationsParameters, estimateHogPixelsPerCellParameters,
                        estimateHogCellsPerBlockParameters,
-                       estimateDetectCircleParameters
+                       estimateDetectCircleParameters, estimateColorCenterParameters
                        ]
 
     for estimator in meta_estimators:
-        estimator(directories)
+        estimator(directories,GaussianNaiveBayes)
 
 # train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
 #                  ['data/train'],

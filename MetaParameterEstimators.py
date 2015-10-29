@@ -20,15 +20,18 @@ def estimateMeta(directories,trainer,rangeValues,label):
     name = inspect.stack()[1][3]
     plot.save([label],[results],"result_graphs/" + name)
 
-def estimateHogOrientationsParameters(directories):
-    estimateMeta(directories,GaussianNaiveBayes,[(ori,HogFeature(orientations=ori)) for ori in range(1,20)],"orientations")
+def estimateHogOrientationsParameters(directories,trainer):
+    estimateMeta(directories,trainer,[(ori,HogFeature(orientations=ori)) for ori in range(1,20)],"orientations")
 
-def estimateHogPixelsPerCellParameters(directories):
-    estimateMeta(directories,GaussianNaiveBayes,[(v,HogFeature(pixels_per_cell=(v,v))) for v in [2,4,5,10,20,50,100]],"pixels per cell")
+def estimateHogPixelsPerCellParameters(directories,trainer):
+    estimateMeta(directories,trainer,[(v,HogFeature(pixels_per_cell=(v,v))) for v in [2,4,5,10,20,50,100]],"pixels per cell")
 
-def estimateHogCellsPerBlockParameters(directories):
-    estimateMeta(directories,GaussianNaiveBayes,[(v,HogFeature(cells_per_block=(v,v))) for v in [1,2,3,4,5,6,7,8,9,10]],"pixels per cell")
+def estimateHogCellsPerBlockParameters(directories,trainer):
+    estimateMeta(directories,trainer,[(v,HogFeature(cells_per_block=(v,v))) for v in [1,2,3,4,5,6,7,8,9,10]],"pixels per cell")
 
-def estimateDetectCircleParameters(directories):
+def estimateDetectCircleParameters(directories,trainer):
     features = [HogFeature()]
-    estimateMeta(directories,GaussianNaiveBayes,[(v,features.append(DetectCircle(sigma=v))) for v in np.arange(0.1,5,0.1)],"sigma")
+    estimateMeta(directories,trainer,[(v,features.append(DetectCircle(sigma=v))) for v in np.arange(0.1,5,0.1)],"sigma")
+
+def estimateColorCenterParameters(directories,trainer):
+    estimateMeta(directories,trainer,[(v,ColorCenter(size=v)) for v in range(20)],"scale size")
