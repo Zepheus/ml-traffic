@@ -1,11 +1,11 @@
 from learn import AbstractLearner
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import AdaBoostClassifier
 
 
-class LogisticRegressionTrainer(AbstractLearner):
+class AdaLearner(AbstractLearner):
 
-    def __init__(self, regularization=1.0, penalty='l2'):
-        self.learner = LogisticRegression(penalty=penalty, multi_class='ovr', C=regularization)
+    def __init__(self, n_estimators=100):
+        self.learner = AdaBoostClassifier(n_estimators=n_estimators)
 
     def _train(self, x_train, y_train):
         self.learner = self.learner.fit(x_train, y_train)

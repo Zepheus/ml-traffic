@@ -8,15 +8,24 @@ from skimage.draw import circle_perimeter
 from skimage.color import rgb2gray
 from skimage.util import img_as_ubyte
 from skimage import exposure
+from skimage.transform import resize
 
 from features import AbstractFeature
 
 
 class DetectCircle(AbstractFeature):
-    def __init__(self, sigma=3):
+    def __init__(self, sigma=3, max_resized=64):
         self.sigma = sigma
+        self.max_resized = max_resized
 
     def process(self, im):
+        (width, height, _) = im.shape
+
+        if width > self.max_resized or height > self.max_resized:
+            scaleHeight = self.max_resized / height
+            scaleWidth = self.max_resized / width
+            scale = min(scaleHeight, scaleWidth)
+            im = resize(im, (int(width * scale), int(height * scale)))
         img_gray = rgb2gray(im)
         img_adapted = exposure.equalize_hist(img_gray)
         edges = canny(img_adapted, sigma=self.sigma)

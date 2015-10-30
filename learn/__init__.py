@@ -6,4 +6,5 @@ from learn.logistic_regression import LogisticRegressionTrainer
 from learn.knn import KNN
 from learn.linear_svc import LinearSVCTrainer
 from learn.bagging import BaggingLearner
+from learn.adaboostclassifier import AdaLearner
 

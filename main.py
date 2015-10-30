@@ -66,7 +66,7 @@ def estimateMetas(directories):
 #                  ['data/train'],
 #                  ['data/test'])
 
-trainFolds(['data/train/blue_circles'], [ LogisticRegressionTrainer, BaggingLearner, GaussianNaiveBayes ])
+trainFolds(['data/train'], [lambda: LogisticRegressionTrainer(x/10) for x in range(1, 20)])
 #estimateMetas(['data/train'])
 # trainFolds(['data/train/blue_circles','reversed_triangles'])
 

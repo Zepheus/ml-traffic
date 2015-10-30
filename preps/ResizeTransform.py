@@ -1,6 +1,7 @@
 from preps import AbstractPrep
 from skimage.transform import resize
 
+
 class ResizeTransform(AbstractPrep):
 
     def __init__(self, size=100):
