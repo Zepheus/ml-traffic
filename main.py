@@ -54,7 +54,7 @@ def trainFolds(directories, trainers):
     combiner = FeatureCombiner(
         [HsvFeature(), DetectCircle(), HogFeature(), RegionRatio(), DetectSymmetry()])  # Feature selection
     cross_validate(images, combiner, trainers, k=10, use_super_class=False,
-                   number_of_pca_components=0)  # use 10 folds, no pca
+                   number_of_pca_components=0, verboseFiles=True)  # use 10 folds, no pca
 
 
 def estimateMetas(directories):
@@ -67,13 +67,11 @@ def estimateMetas(directories):
         estimator(directories, LogisticRegressionTrainer)
 
 
-train_and_predict(lambda: LogisticRegressionTrainer(181),
-                  FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry()]), 0,
-                  ['data/train'], ['data/test'])
+#train_and_predict(lambda: LogisticRegressionTrainer(181),
+#                  FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry()]), 0,
+#                  ['data/train'], ['data/test'])
 
 
-def createLogisticRegressor(x): return lambda: LogisticRegressionTrainer(x)
-
-# trainFolds(['data/train'], list([createLogisticRegressor(x) for x in range(1, 200, 20)] + [LinearSVCTrainer]))
+trainFolds(['data/train'], lambda: LogisticRegressionTrainer(181.0))  # Estimated 181 through CV
 # estimateMetas(['data/train'])
 # trainFolds(['data/train/blue_circles','reversed_triangles'])

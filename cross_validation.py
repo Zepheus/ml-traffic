@@ -72,8 +72,8 @@ def single_validate(trainer, train_data, train_classes, test_data, test_classes,
 
 
 def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, number_of_pca_components=0, verbose=True, verboseFiles=False):
-    fold = split_kfold(images, k)
-    #fold = split_special(images, k)
+    #fold = split_kfold(images, k)
+    fold = split_special(images, k)
     print('Split into %d folds' % len(fold))
 
     multitrain = isinstance(trainer_function, list)
