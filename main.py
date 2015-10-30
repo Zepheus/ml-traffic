@@ -18,12 +18,14 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
     train_images = load(train_directories, True)
     test_images = load(test_directories, False)
     print('Images loaded')
+
     # Feature extraction
     feature_extraction(train_images, feature_combiner)
     feature_extraction(test_images, feature_combiner)
     print('Features extracted')
+
     # Feature transform
-    train_data = [image.features for image in train_images]
+    train_data = [image.getFeatureVector() for image in train_images]
     pca = None
     if number_of_pca_components > 0:
         pca = PCA(n_components=min(number_of_pca_components, len(train_images[0].features)))
@@ -33,11 +35,12 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
     train_classes = [image.label for image in train_images]
     trainer.train(train_data, train_classes)
     print('Training complete!!')
+
     # Predict class of test images
     file = open('result.csv', 'w')
     file.write('Id,%s\n' % str.join(',', trainer.classes))
     for image in test_images:
-        test_data = image.features
+        test_data = image.getFeatureVector()
         if pca:
             test_data = pca.transform(test_data)
         predictions = trainer.predict_proba(test_data)
@@ -48,7 +51,8 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
 
 def trainFolds(directories, trainers):
     images = load(directories, True, permute=True)
-    combiner = FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature(), RegionRatio(), DetectSymmetry()])  # Feature selection
+    combiner = FeatureCombiner(
+        [HsvFeature(), DetectCircle(), HogFeature(), RegionRatio(), DetectSymmetry()])  # Feature selection
     cross_validate(images, combiner, trainers, k=10, use_super_class=False,
                    number_of_pca_components=0)  # use 10 folds, no pca
 
@@ -60,13 +64,16 @@ def estimateMetas(directories):
                        ]
 
     for estimator in meta_estimators:
-        estimator(directories,LogisticRegressionTrainer)
+        estimator(directories, LogisticRegressionTrainer)
 
-# train_and_predict(trainer_function, FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature()]), 0,
-#                  ['data/train'],
-#                  ['data/test'])
 
-trainFolds(['data/train'], [lambda: LogisticRegressionTrainer(x/10) for x in range(1, 20)])
-#estimateMetas(['data/train'])
+train_and_predict(lambda: LogisticRegressionTrainer(181),
+                  FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry()]), 0,
+                  ['data/train'], ['data/test'])
+
+
+def createLogisticRegressor(x): return lambda: LogisticRegressionTrainer(x)
+
+# trainFolds(['data/train'], list([createLogisticRegressor(x) for x in range(1, 200, 20)] + [LinearSVCTrainer]))
+# estimateMetas(['data/train'])
 # trainFolds(['data/train/blue_circles','reversed_triangles'])
-

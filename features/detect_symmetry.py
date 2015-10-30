@@ -21,15 +21,15 @@ class DetectSymmetry(AbstractFeature):
         # Vertical residue
         vertflipped = np.fliplr(bw) # flip horizontally
         vertresidu = np.subtract(bw, vertflipped)
-        idx = vertresidu[:, :] < self.threshold
-        vertresidu[idx] = 0
+        #idx = vertresidu[:, :] < self.threshold
+        #vertresidu[idx] = 0
         vertFeatures = ResizeTransform(self.blocksize).process(vertresidu).flatten()
 
         # Horizontal residue
         horflipped = np.transpose(np.fliplr(np.transpose(bw)))
         horresidu = np.subtract(bw, horflipped)
-        idx = horresidu[:, :] < self.threshold
-        horresidu[idx] = 0
+        #idx = horresidu[:, :] < self.threshold
+        #horresidu[idx] = 0
         horFeatures = ResizeTransform(self.blocksize).process(horresidu).flatten()
         return np.concatenate((vertFeatures, horFeatures))
 

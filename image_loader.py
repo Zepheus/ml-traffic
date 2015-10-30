@@ -12,26 +12,26 @@ class LabelledImage:
         self.super_label = superLabel
         self.features = {}
 
-    def isSet(self,feature):
+    def isSet(self, feature):
         if feature.key() == "FeatureCombiner": return False
 
         return self.features.__contains__(feature.key()) and self.features[feature.key()] is not None
 
-    def set(self,feature,value):
+    def set(self, feature, value):
         if feature.key() == "FeatureCombiner": raise "cannot set value for combiner"
 
         if not self.isSet(feature):
             self.features[feature.key()] = value
 
-    def get(self,feature):
+    def get(self, feature):
         if feature.key() == "FeatureCombiner": raise "cannot get value for combiner"
 
         return self.features[feature.key()]
 
     def getFeatureVector(self):
-        return np.concatenate([value for key,value in sorted(self.features.items())])
+        return np.hstack([self.features[key] for key in sorted(self.features)])
 
-    def reset(self,feature):
+    def reset(self, feature):
         if feature.key() == "FeatureCombiner":
             for f in feature.extractors:
                 self.reset(f)
@@ -60,18 +60,18 @@ def load(directories, is_train_data, permute=True):
     return np.random.permutation(values) if permute else values
 
 
-def feature_extraction(images, feature,verbose=True):
+def feature_extraction(images, feature, verbose=True):
     if verbose:
         sys.stdout.write('')
     for idx, image in enumerate(images):
         if verbose:
             sys.stdout.write('\r    feature calculation [%d %%] (%s)'
-                         % (int(100.0 * float(idx) / len(images)), image.filename))
+                             % (int(100.0 * float(idx) / len(images)), image.filename))
             sys.stdout.flush()
         if feature.key() == "FeatureCombiner":
             feature.process(image)
         else:
             if not image.isSet(feature):
-                image.set(feature,feature.process(image.image))
+                image.set(feature, feature.process(image.image))
     if verbose:
         sys.stdout.write('\r    feature calculation [100 %]\n')

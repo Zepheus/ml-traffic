@@ -10,6 +10,7 @@ class AbstractLearner(metaclass=ABCMeta):
 
     def train(self, x_train, y_train):
         self._extract_classes(y_train)
+
         self._train(x_train, self.labels)
 
     @abstractmethod
@@ -32,3 +33,6 @@ class AbstractLearner(metaclass=ABCMeta):
     @abstractmethod
     def predict_proba(self, x):
         pass
+
+    def __str__(self):
+        return type(self).__name__

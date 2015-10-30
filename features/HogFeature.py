@@ -5,7 +5,7 @@ from preps import ResizeTransform
 
 
 class HogFeature(AbstractFeature):
-    def __init__(self, orientations=4, pixels_per_cell=(10, 10), cells_per_block=(2, 2)):
+    def __init__(self, orientations=4, pixels_per_cell=(16, 16), cells_per_block=(1, 1)):
         self.transform = BWTransform()
         self.resize = ResizeTransform(100)
         self.orientations = orientations
