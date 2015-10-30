@@ -1,10 +1,12 @@
 from learn import AbstractLearner
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import BaggingClassifier
 
-class LogisticRegressionTrainer(AbstractLearner):
+
+class BaggingLearner(AbstractLearner):
 
     def __init__(self):
-        self.learner = LogisticRegression(penalty='l2', multi_class='ovr')
+        self.learner = BaggingClassifier(LogisticRegression(), max_samples=0.5, max_features=0.5)
 
     def _train(self, x_train, y_train):
         self.learner = self.learner.fit(x_train, y_train)

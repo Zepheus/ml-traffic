@@ -5,4 +5,5 @@ from learn.bernouiili_naive_bayes import BernoulliNaiveBayes
 from learn.logistic_regression import LogisticRegressionTrainer
 from learn.knn import KNN
 from learn.linear_svc import LinearSVCTrainer
+from learn.bagging import BaggingLearner
 
