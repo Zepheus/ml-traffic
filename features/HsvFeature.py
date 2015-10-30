@@ -14,4 +14,5 @@ class HsvFeature(AbstractFeature):
         sAvg = np.mean(hsvIm[:,:,1])
         vAvg = np.mean(hsvIm[:,:,2])
         test = np.mean(hsvIm,axis=2)
-        return [hAvg,sAvg,vAvg]
+        return [hAvg] # saturation and value are useless
+        #return [hAvg,sAvg,vAvg]

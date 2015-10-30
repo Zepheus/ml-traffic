@@ -8,6 +8,7 @@ from image_loader import *
 from cross_validation import cross_validate
 from skimage.color import *
 from visualize import *
+from skimage import io
 from MetaParameterEstimators import *
 
 
@@ -66,12 +67,19 @@ def estimateMetas(directories):
     for estimator in meta_estimators:
         estimator(directories, LogisticRegressionTrainer)
 
+def test():
+    imgF27 = io.imread('data/train/other/F27/00341_02236.png')
+    imgC1 = io.imread('data/train/forbidden/C1/00071_01019.png')
+    hsvtest = HsvFeature()
+    hsvF27 = hsvtest.process(imgF27)
+    hsvC1 = hsvtest.process(imgC1)
+    pass
 
-#train_and_predict(lambda: LogisticRegressionTrainer(181),
-#                  FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry()]), 0,
-#                  ['data/train'], ['data/test'])
+train_and_predict(lambda: LogisticRegressionTrainer(181),
+                  FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry()]), 0,
+                  ['data/train'], ['data/test'])
 
-
-trainFolds(['data/train'], lambda: LogisticRegressionTrainer(181.0))  # Estimated 181 through CV
+#test()
+#trainFolds(['data/train'], lambda: LogisticRegressionTrainer(181.0))  # Estimated 181 through CV
 # estimateMetas(['data/train'])
 # trainFolds(['data/train/blue_circles','reversed_triangles'])
