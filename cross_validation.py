@@ -2,10 +2,10 @@ from sklearn.cross_validation import KFold
 from sklearn.decomposition import PCA
 import itertools
 import random
+from skimage import transform
 
 # own packages
 from image_loader import *
-
 
 
 def split_kfold(images, k):
@@ -20,8 +20,11 @@ def extract_pole_nr(image):
 
 def split_special(images, maxFolds=10):
     class_by_pole = list([list([list(image_by_pole)
-                                for _, image_by_pole in itertools.groupby(sorted(img_by_class, key=lambda l: extract_pole_nr(l)), lambda y: extract_pole_nr(y))])
-                          for cl, img_by_class in itertools.groupby(sorted(images, key=lambda p: p.label), lambda x: x.label)])
+                                for _, image_by_pole in
+                                itertools.groupby(sorted(img_by_class, key=lambda l: extract_pole_nr(l)),
+                                                  lambda y: extract_pole_nr(y))])
+                          for cl, img_by_class in
+                          itertools.groupby(sorted(images, key=lambda p: p.label), lambda x: x.label)])
     max_allowed_folds = min(maxFolds, min([len(x) for x in class_by_pole]))
 
     # Now we make sure that for each class, it is added to at least each fold
@@ -47,7 +50,9 @@ def split_special(images, maxFolds=10):
             folds[fold].extend(image_group)
 
     # Now that we generated the folds, we generate fold sets
-    return [(list(itertools.chain(*[folds[k] for k in [j for j in range(max_allowed_folds) if j != i]])), folds[i]) for i in range(max_allowed_folds)]
+    return [(list(itertools.chain(*[folds[k] for k in [j for j in range(max_allowed_folds) if j != i]])), folds[i]) for
+            i in range(max_allowed_folds)]
+
 
 def single_validate(trainer, train_data, train_classes, test_data, test_classes, test_images, verbose, verboseFiles):
     # Train
@@ -63,16 +68,25 @@ def single_validate(trainer, train_data, train_classes, test_data, test_classes,
             errors.append([image, prediction, ground_truth])
             if verbose and verboseFiles:
                 print('\r    [ERROR] for image %s I predicted "%s" but the sign actually was "%s"' % (
-                image.filename, prediction, ground_truth))
+                    image.filename, prediction, ground_truth))
     if verbose:
         sys.stdout.write('\r    test calculation [100 %]\n')
     error = float(len(errors)) / len(test_classes)
     return error
 
 
+def augment_rotated(images):
+    augmented = np.array([LabelledImage(
+        transform.rotate(img.image, 90.0),
+        img.filename + '_rotated',
+        img.label)
+                 for img in images])
+    return np.concatenate((images, augmented))
 
-def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, number_of_pca_components=0, verbose=True, verboseFiles=False):
-    #fold = split_kfold(images, k)
+
+def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, number_of_pca_components=0,
+                   verbose=True, verboseFiles=False):
+    # fold = split_kfold(images, k)
     fold = split_special(images, k)
     print('Split into %d folds' % len(fold))
 
@@ -97,17 +111,19 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         test_data = [image.getFeatureVector() for image in test_images]
         test_classes = [image.super_label if use_super_class else image.label for image in test_images]
 
-         # Train
+        # Train
         if multitrain:
             for trainer_idx, trainer_factory in enumerate(trainer_function):
                 trainer = trainer_factory()
-                error = single_validate(trainer, train_data, train_classes, test_data, test_classes, test_images, verbose, verboseFiles)
+                error = single_validate(trainer, train_data, train_classes, test_data, test_classes, test_images,
+                                        verbose, verboseFiles)
                 error_ratios[trainer_idx].append(error)
                 if verbose:
                     print('    error ratio of fold: %f (trainer %s)' % (error, str(trainer)))
         else:
             trainer = trainer_function()
-            error = single_validate(trainer, train_data, train_classes, test_data, test_classes, test_images, verbose, verboseFiles)
+            error = single_validate(trainer, train_data, train_classes, test_data, test_classes, test_images, verbose,
+                                    verboseFiles)
 
             if verbose:
                 print('    error ratio of fold: %f' % error)

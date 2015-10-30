@@ -41,7 +41,11 @@ class DetectCircle(AbstractFeature):
         for radius, h in zip(radii, hough_res):
             # For each radius, extract two circles
             peaks = peak_local_max(h, num_peaks=1, min_distance=1)
-            accums.extend(h[peaks[:, 0], peaks[:, 1]])
+            if len(peaks) > 0:
+                accums.extend(h[peaks[:, 0], peaks[:, 1]])
+
+        if len(accums) == 0: #TODO: fix, should not happen
+            return [0]
 
         idx = np.argsort(accums)[::-1][1]
         return [accums[idx]]
