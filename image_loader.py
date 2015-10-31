@@ -11,6 +11,7 @@ class LabelledImage:
         self.label = label
         self.super_label = superLabel
         self.features = {}
+        self.preps = {}
 
     def isSet(self, feature):
         if feature.key() == "FeatureCombiner": return False
@@ -38,6 +39,12 @@ class LabelledImage:
         else:
             self.features[feature.key()] = None
 
+    def cachePrep(self,key,value):
+        self.preps[key] = value
+
+    def getPrep(self,key):
+        return self.preps[key]
+
     def __str__(self):
         return self.filename
 
@@ -59,6 +66,10 @@ def load(directories, is_train_data, permute=True):
                         values.append(LabelledImage(image, fn))
     return np.random.permutation(values) if permute else values
 
+def print_update(idx,total,name):
+    sys.stdout.write('\r    feature calculation [%d %%] (%s)'
+                     % (int(100.0 * float(idx) / total), name))
+    sys.stdout.flush()
 
 def feature_extraction(images, feature, verbose=True):
     if verbose:

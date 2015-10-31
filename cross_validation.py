@@ -103,8 +103,8 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
             print('-------- calculating fold %d --------' % (i + 1))
 
         # Feature extraction
-        feature_extraction(train_images, feature_combiner, verbose=verbose)
-        feature_extraction(test_images, feature_combiner, verbose=verbose)
+        feature_extraction(train_images, feature_combiner,verbose=verbose)
+        feature_extraction(test_images, feature_combiner,verbose=verbose)
 
         train_data = [image.getFeatureVector() for image in train_images]
         train_classes = [image.super_label if use_super_class else image.label for image in train_images]

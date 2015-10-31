@@ -34,4 +34,4 @@ def estimateDetectCircleParameters(directories,trainer):
     estimateMeta(directories,trainer,[(v,features.append(DetectCircle(sigma=v))) for v in np.arange(0.1,5,0.1)],"sigma")
 
 def estimateColorCenterParameters(directories,trainer):
-    estimateMeta(directories,trainer,[(v,ColorCenter(size=v)) for v in range(20)],"scale size")
+    estimateMeta(directories,trainer,[(v,ColorCenter(size=v)) for v in range(1,20)],"scale size")

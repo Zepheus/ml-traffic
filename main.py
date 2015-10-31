@@ -59,9 +59,10 @@ def trainFolds(directories, trainers):
 
 
 def estimateMetas(directories):
-    meta_estimators = [estimateHogOrientationsParameters, estimateHogPixelsPerCellParameters,
-                       estimateHogCellsPerBlockParameters,
-                       estimateDetectCircleParameters, estimateColorCenterParameters
+    meta_estimators = [estimateColorCenterParameters,
+                       #estimateHogOrientationsParameters, estimateHogPixelsPerCellParameters,
+                       #estimateHogCellsPerBlockParameters,
+                       #estimateDetectCircleParameters
                        ]
 
     for estimator in meta_estimators:
@@ -75,11 +76,11 @@ def test():
     hsvC1 = hsvtest.process(imgC1)
     pass
 
-train_and_predict(lambda: LogisticRegressionTrainer(181),
-                  FeatureCombiner([ColorCenter()]), 0,
-                  ['data/train'], ['data/test'])
+#train_and_predict(lambda: LogisticRegressionTrainer(181),
+#                  FeatureCombiner([ColorCenter()]), 0,
+#                  ['data/train'], ['data/test'])
 
 #test()
 #trainFolds(['data/train'], lambda: LogisticRegressionTrainer(181.0))  # Estimated 181 through CV
-# estimateMetas(['data/train'])
+estimateMetas(['data/train'])
 # trainFolds(['data/train/blue_circles','reversed_triangles'])
