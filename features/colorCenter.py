@@ -11,6 +11,7 @@ class ColorCenter(AbstractFeature):
         self.transform = HsvTransform()
         self.segmentation = Segmentation()
         self.ratioTransform = RatioTransform()
+        self.size = size
 
     def process(self,im):
         segmented = self.segmentation.process(im)

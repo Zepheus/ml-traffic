@@ -76,7 +76,7 @@ def test():
     pass
 
 train_and_predict(lambda: LogisticRegressionTrainer(181),
-                  FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry()]), 0,
+                  FeatureCombiner([ColorCenter()]), 0,
                   ['data/train'], ['data/test'])
 
 #test()
