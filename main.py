@@ -53,7 +53,7 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
 def trainFolds(directories, trainers):
     images = load(directories, True, permute=True)
     combiner = FeatureCombiner(
-        [HsvFeature(), DetectCircle(), HogFeature(), RegionRatio(), DetectSymmetry()])  # Feature selection
+        [ColorCenter(),DetectCircle(),HogFeature(),HsvFeature(),DetectSymmetry(),RegionRatio()])  # Feature selection
     cross_validate(images, combiner, trainers, k=10, use_super_class=False,
                    number_of_pca_components=0, verboseFiles=True)  # use 10 folds, no pca
 
@@ -77,10 +77,10 @@ def test():
     pass
 
 #train_and_predict(lambda: LogisticRegressionTrainer(181),
-#                  FeatureCombiner([ColorCenter()]), 0,
+#                  FeatureCombiner([ColorCenter(),DetectCircle(),HogFeature(),HsvFeature(),DetectSymmetry(),RegionRatio()]), 0,
 #                  ['data/train'], ['data/test'])
 
 #test()
-#trainFolds(['data/train'], lambda: LogisticRegressionTrainer(181.0))  # Estimated 181 through CV
-estimateMetas(['data/train'])
+trainFolds(['data/train'], lambda: LogisticRegressionTrainer(181.0))  # Estimated 181 through CV
+#estimateMetas(['data/train'])
 # trainFolds(['data/train/blue_circles','reversed_triangles'])

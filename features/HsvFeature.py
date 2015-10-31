@@ -9,10 +9,10 @@ class HsvFeature(AbstractFeature):
 
 
     def process(self,im):
-        hsvIm = self.transform.process(im)
+        hsvIm = im.prep(self.transform)
         hAvg = np.mean(hsvIm[:,:,0])
-        sAvg = np.mean(hsvIm[:,:,1])
-        vAvg = np.mean(hsvIm[:,:,2])
-        test = np.mean(hsvIm,axis=2)
+        #sAvg = np.mean(hsvIm[:,:,1])
+        #vAvg = np.mean(hsvIm[:,:,2])
+        #test = np.mean(hsvIm,axis=2)
         return [hAvg] # saturation and value are useless
         #return [hAvg,sAvg,vAvg]

@@ -39,11 +39,20 @@ class LabelledImage:
         else:
             self.features[feature.key()] = None
 
-    def cachePrep(self,key,value):
-        self.preps[key] = value
+    def calcFeature(self,feature):
+        if feature.key() == "FeatureCombiner":
+            feature.process(self)
+        else:
+            if feature.key() not in self.features:
+                self.features[feature.key()] = feature.process(self)
 
-    def getPrep(self,key):
-        return self.preps[key]
+            return self.features[feature.key()]
+
+    def prep(self,prep):
+        if prep.key() not in self.preps:
+            self.preps[prep.key()] = prep.process(self.image)
+
+        return self.preps[prep.key()]
 
     def __str__(self):
         return self.filename
@@ -79,10 +88,6 @@ def feature_extraction(images, feature, verbose=True):
             sys.stdout.write('\r    feature calculation [%d %%] (%s)'
                              % (int(100.0 * float(idx) / len(images)), image.filename))
             sys.stdout.flush()
-        if feature.key() == "FeatureCombiner":
-            feature.process(image)
-        else:
-            if not image.isSet(feature):
-                image.set(feature, feature.process(image.image))
+        image.calcFeature(feature)
     if verbose:
         sys.stdout.write('\r    feature calculation [100 %]\n')

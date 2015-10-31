@@ -1,7 +1,6 @@
 import numpy as np
 
-from preps import BWTransform
-from preps import ResizeTransform
+from preps import BWTransform,ResizeTransform,PrepCombiner
 
 from features import AbstractFeature
 
@@ -9,14 +8,12 @@ class DetectSymmetry(AbstractFeature):
 
     def __init__(self, size=32, threshold=0.1, blocksize=5):
         self.threshold = threshold
-        self.transform = BWTransform()
         self.blocksize = blocksize
-        self.resize = ResizeTransform(size)
+        self.transform = PrepCombiner([ResizeTransform(size),BWTransform()])
 
 
     def process(self, im):
-        resized = self.resize.process(im)
-        bw = self.transform.process(resized)
+        bw = im.prep(self.transform)
 
         # Vertical residue
         vertflipped = np.fliplr(bw) # flip horizontally

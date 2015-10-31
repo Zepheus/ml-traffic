@@ -7,15 +7,5 @@ class FeatureCombiner(AbstractFeature):
         self.extractors = feature_extractors
 
     def process(self, im):
-        features = []
         for extractor in self.extractors:
-            if not im.isSet(extractor):
-                im.set(extractor, extractor.process(im.image))
-            feature = im.get(extractor)
-            if isinstance(feature, np.ndarray):  # fix for numpy array -> normal array
-                feature = feature.tolist()
-            elif not isinstance(feature, list):  # fix for scalar -> single array
-                feature = [feature]
-
-            features.append(feature)
-        return [x for y in features for x in y]  # flatten list
+            im.calcFeature(extractor)

@@ -6,3 +6,5 @@ class AbstractPrep(metaclass=ABCMeta):
     def process(self,im):
         pass
 
+    def key(self):
+        return self.__class__.__name__
