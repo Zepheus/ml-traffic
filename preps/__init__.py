@@ -6,3 +6,4 @@ from preps.HsvTransform import HsvTransform
 from preps.Segmentation import Segmentation
 from preps.EqualizerTransform import EqualizerTransform
 from preps.PrepCombiner import PrepCombiner
+from preps.IntegralTransform import IntegralTransform

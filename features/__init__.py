@@ -6,3 +6,4 @@ from features.FeatureCombiner import FeatureCombiner
 from features.region_ratio import RegionRatio
 from features.colorCenter import ColorCenter
 from features.detect_symmetry import DetectSymmetry
+from features.HaarFeature import HaarFeature
