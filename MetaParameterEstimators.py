@@ -11,12 +11,15 @@ def estimateMeta(directories, trainer, rangeValues, label, staticFeatures):
     for v, feature in rangeValues:
         print("Optimizing %s: %f" % (feature.key(), v))
         feature_calculator = [feature] + staticFeatures
-        results.append([v, cross_validate(images, feature_calculator, trainer, k=10,
-                                          use_super_class=False, number_of_pca_components=0, verbose=False)])
+        error_rate = cross_validate(images, feature_calculator, trainer, k=10,
+                                          use_super_class=False, number_of_pca_components=0, verbose=False)
+        print("Error rate: %f" % error_rate)
+        results.append([v, error_rate])
+
         for i in images:
             i.reset(feature)
 
-    plot = ScatterPlot()
+    plot = ScatterPlot(ylabel='error rate', xlabel='param')
     name = inspect.stack()[1][3]
     plot.save([label], [results], "result_graphs/" + name)
 
@@ -46,10 +49,13 @@ def estimateDetectCircleParameters(directories, trainer):
     estimateMeta(directories, trainer, [(v, DetectCircle(sigma=v)) for v in np.arange(0.1, 5, 0.4)],
                  "sigma", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(1, 1)), DetectSymmetry(), RegionRatio()])
 
-def estimateDetectSymmetryParameters(directories, trainer):
-    estimateMeta(directories, trainer, [(v, DetectSymmetry(size=v)) for v in range(10, 30, 5)],
-             "size", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3)), RegionRatio(), DetectCircle()])
+def estimateDetectSymmetryLargeBlockParameters(directories, trainer):
+    estimateMeta(directories, trainer, [(v, DetectSymmetry(size=v)) for v in range(10, 96, 10)],
+             "large_size", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3)), RegionRatio(), DetectCircle()])
 
+def estimateDetectSymmetrySmallBlockParameters(directories, trainer):
+    estimateMeta(directories, trainer, [(v, DetectSymmetry(size=96, blocksize=v)) for v in range(2, 32, 5)],
+             "small_size", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3)), RegionRatio(), DetectCircle()])
 
 def estimateColorCenterParameters(directories, trainer):
     estimateMeta(directories, trainer, [(v, ColorCenter(size=v)) for v in range(1, 20)], "scale size",
