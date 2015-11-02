@@ -39,16 +39,17 @@ class LabelledImage:
         else:
             self.features[feature.key()] = None
 
-    def calcFeature(self,feature):
-        if feature.key() == "FeatureCombiner":
-            feature.process(self)
+    def calcFeature(self, feature):
+        if isinstance(feature, list):
+            for feature_single in feature:
+                self.calcFeature(feature_single) # recursively calculate features
         else:
             if feature.key() not in self.features:
                 self.features[feature.key()] = feature.process(self)
 
             return self.features[feature.key()]
 
-    def prep(self,prep):
+    def prep(self, prep):
         if prep.key() not in self.preps:
             self.preps[prep.key()] = prep.process(self.image)
 
@@ -75,10 +76,12 @@ def load(directories, is_train_data, permute=True):
                         values.append(LabelledImage(image, fn))
     return np.random.permutation(values) if permute else values
 
-def print_update(idx,total,name):
+
+def print_update(idx, total, name):
     sys.stdout.write('\r    feature calculation [%d %%] (%s)'
                      % (int(100.0 * float(idx) / total), name))
     sys.stdout.flush()
+
 
 def feature_extraction(images, feature, verbose=True):
     if verbose:

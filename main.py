@@ -52,36 +52,28 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
 
 def trainFolds(directories, trainers):
     images = load(directories, True, permute=True)
-    combiner = FeatureCombiner(
-        [HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry(), RegionRatio()])  # Feature selection
+    combiner = [HsvFeature(), DetectCircle(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(1, 1)),
+                 DetectSymmetry(), RegionRatio()]  # Feature selection
     cross_validate(images, combiner, trainers, k=10, use_super_class=False,
                    number_of_pca_components=0, verboseFiles=True)  # use 10 folds, no pca
 
 
 def estimateMetas(directories):
-    meta_estimators = [estimateColorCenterParameters,
-                       #estimateHogOrientationsParameters, estimateHogPixelsPerCellParameters,
-                       #estimateHogCellsPerBlockParameters,
-                       #estimateDetectCircleParameters
+    meta_estimators = [#estimateColorCenterParameters,
+                        estimateHogOrientationsParameters, estimateHogPixelsPerCellParameters,
+                        estimateHogCellsPerBlockParameters,
+                        estimateDetectCircleParameters
                        ]
 
     for estimator in meta_estimators:
-        estimator(directories, LogisticRegressionTrainer)
+        estimator(directories, lambda: LogisticRegressionTrainer(181))
 
-def test():
-    imgF27 = io.imread('data/train/other/F27/00341_02236.png')
-    imgC1 = io.imread('data/train/forbidden/C1/00071_01019.png')
-    hsvtest = HsvFeature()
-    hsvF27 = hsvtest.process(imgF27)
-    hsvC1 = hsvtest.process(imgC1)
-    pass
-
-train_and_predict(lambda: LogisticRegressionTrainer(181),
-                  FeatureCombiner([HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry(), RegionRatio()]), 0,
-                  ['data/train'], ['data/test'])
+#train_and_predict(lambda: LogisticRegressionTrainer(181),
+#                  [HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry(), RegionRatio()], 0,
+#                  ['data/train'], ['data/test'])
 
 #test()
 
 #trainFolds(["data/train"], lambda: LogisticRegressionTrainer(181.0))  # Estimated 181 through CV
-#estimateMetas(['data/train'])
+estimateMetas(['data/train'])
 # trainFolds(['data/train/blue_circles','reversed_triangles'])
