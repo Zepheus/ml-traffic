@@ -88,7 +88,8 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
                    verbose=True, verboseFiles=False):
     # fold = split_kfold(images, k)
     fold = split_special(images, k)
-    print('Split into %d folds' % len(fold))
+    if verbose:
+        print('Split into %d folds' % len(fold))
 
     multitrain = isinstance(trainer_function, list)
     error_ratios = []

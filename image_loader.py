@@ -33,11 +33,11 @@ class LabelledImage:
         return np.hstack([self.features[key] for key in sorted(self.features)])
 
     def reset(self, feature):
-        if feature.key() == "FeatureCombiner":
-            for f in feature.extractors:
+        if isinstance(feature, list):
+            for f in feature:
                 self.reset(f)
         else:
-            self.features[feature.key()] = None
+            del self.features[feature.key()]
 
     def calcFeature(self, feature):
         if isinstance(feature, list):

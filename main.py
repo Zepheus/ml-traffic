@@ -66,7 +66,7 @@ def estimateMetas(directories):
                        ]
 
     for estimator in meta_estimators:
-        estimator(directories, lambda: LogisticRegressionTrainer(181))
+        estimator(directories, lambda: LogisticRegressionTrainer(181.0))
 
 #train_and_predict(lambda: LogisticRegressionTrainer(181),
 #                  [HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry(), RegionRatio()], 0,
