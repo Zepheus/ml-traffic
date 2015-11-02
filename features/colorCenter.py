@@ -1,7 +1,7 @@
 from features import AbstractFeature
 from preps import Segmentation
 from skimage.transform import *
-
+from skimage import filters
 
 class ColorCenter(AbstractFeature):
 
@@ -12,6 +12,6 @@ class ColorCenter(AbstractFeature):
     def process(self, im):
         segmented = im.prep(self.segmentation)
         small = resize(segmented,(self.size,self.size),preserve_range=True)
+        blurred = filters.gaussian_filter(small, 2.0)
 
-        return small.ravel()
-
+        return blurred.ravel()
