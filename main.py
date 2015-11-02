@@ -52,17 +52,19 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
 
 def trainFolds(directories, trainers):
     images = load(directories, True, permute=True)
-    combiner = [HsvFeature(), DetectCircle(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(1, 1)),
+    combiner = [HsvFeature(), DetectCircle(sigma=1.8), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96),
                  DetectSymmetry(), RegionRatio()]  # Feature selection
     cross_validate(images, combiner, trainers, k=10, use_super_class=False,
                    number_of_pca_components=0, verboseFiles=True)  # use 10 folds, no pca
 
 
 def estimateMetas(directories):
-    meta_estimators = [#estimateColorCenterParameters,
-                        estimateHogOrientationsParameters, estimateHogPixelsPerCellParameters,
-                        estimateHogCellsPerBlockParameters,
-                        estimateDetectCircleParameters
+    meta_estimators = [ #estimateHogResizeParameters,
+                        #estimateHogOrientationsParameters,
+                        #estimateHogCellsPerBlockParameters,
+                        #estimateDetectCircleParameters,
+                        estimateDetectSymmetryParameters,
+                        estimateHogPixelsPerCellParameters
                        ]
 
     for estimator in meta_estimators:
@@ -72,7 +74,6 @@ def estimateMetas(directories):
 #                  [HsvFeature(), DetectCircle(), HogFeature(), DetectSymmetry(), RegionRatio()], 0,
 #                  ['data/train'], ['data/test'])
 
-#test()
 
 #trainFolds(["data/train"], lambda: LogisticRegressionTrainer(181.0))  # Estimated 181 through CV
 estimateMetas(['data/train'])
