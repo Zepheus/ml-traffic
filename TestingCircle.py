@@ -7,7 +7,7 @@ import numpy as np
 
 
 def train_folds(directories, trainers):
-    images = load(directories, True, permute=True)
+    images = load(directories, True, permute=False)
     circles = [i for i in images if i.label == "D10"]
     non_circles = [i for i in images if i.label == "B3"]
     # circles = [i for i in images if
@@ -16,12 +16,13 @@ def train_folds(directories, trainers):
     #               i.super_label == "squares" or i.super_label == "diamonds" or i.super_label == "reversed_triangles"]
     feature = DetectCircle()
 
-    circle_features = [feature.process(i)[0] for i in circles]
-    print("circles done")
-    non_circle_features = np.array([feature.process(i)[0] for i in non_circles]).ravel()
-    print("non cirlces done")
+    feature.process(circles[2])
+    # circle_features = [feature.process(i)[0] for i in circles]
+    # print("circles done")
+    # non_circle_features = np.array([feature.process(i)[0] for i in non_circles]).ravel()
+    # print("non cirlces done")
 
-    BoxPlot().show(["circles", "non_circles"], [circle_features, non_circle_features])
+    # BoxPlot().show(["circles", "non_circles"], [circle_features, non_circle_features])
 
 
 train_folds(["data/train"], LogisticRegressionTrainer(181.0))
