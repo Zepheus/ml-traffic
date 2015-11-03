@@ -57,7 +57,7 @@ class DetectCircle(AbstractFeature):
         edges = canny(img_adapted, sigma=self.sigma)
         ImagePlot().show("gray", edges)
 
-        result = hough_ellipse(edges, accuracy=10, threshold=10)
+        result = hough_ellipse(edges, accuracy=10, threshold=10, max_size=width)
         result.sort(order='accumulator')
 
         best = list(result[-1])
@@ -84,7 +84,7 @@ class DetectCircle(AbstractFeature):
         return [best[0]]
 
     def process(self, im):
-        # return self._process2(im)
+        return self._process2(im)
 
         (width, height, _) = im.image.shape
 
