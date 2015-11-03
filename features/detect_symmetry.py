@@ -6,7 +6,7 @@ from features import AbstractFeature
 
 class DetectSymmetry(AbstractFeature):
 
-    def __init__(self, size=32, threshold=0.1, blocksize=5):
+    def __init__(self, size=96, threshold=0.1, blocksize=2):
         self.threshold = threshold
         self.blocksize = blocksize
         self.transform = PrepCombiner([ResizeTransform(size),BWTransform()])

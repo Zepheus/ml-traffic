@@ -50,10 +50,10 @@ class LabelledImage:
             return self.features[feature.key()]
 
     def prep(self, prep):
-        if prep.key() not in self.preps:
-            self.preps[prep.key()] = prep.process(self.image)
-
-        return self.preps[prep.key()]
+        #if prep.key() not in self.preps:
+        #    self.preps[prep.key()] = prep.process(self.image)
+        return prep.process(self.image)
+        #return self.preps[prep.key()]
 
     def __str__(self):
         return self.filename
