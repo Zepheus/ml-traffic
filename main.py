@@ -27,11 +27,6 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
 
     # Feature transform
     train_data = [image.getFeatureVector() for image in train_images]
-    pca = None
-    if number_of_pca_components > 0:
-        pca = PCA(n_components=min(number_of_pca_components, len(train_images[0].features)))
-        pca.fit(train_data)
-        train_data = pca.transform(train_data)
     # Train model
     train_classes = [image.label for image in train_images]
     trainer.train(train_data, train_classes)
@@ -42,8 +37,6 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
     file.write('Id,%s\n' % str.join(',', trainer.classes))
     for image in test_images:
         test_data = image.getFeatureVector()
-        if pca:
-            test_data = pca.transform(test_data)
         predictions = trainer.predict_proba(test_data)
         identifier = int(os.path.splitext(basename(image.filename))[0])
         file.write('%d,%s\n' % (identifier, str.join(',', [('%.13f' % p) for p in predictions[0]])))
