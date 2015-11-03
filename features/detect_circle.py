@@ -1,22 +1,44 @@
 import math
 
 import numpy as np
-from skimage.transform import hough_circle
+from skimage.transform import hough_circle, hough_ellipse
 from skimage.feature import peak_local_max, canny
 
 from skimage.transform import resize
 
 from features import AbstractFeature
 from preps import BWTransform, EqualizerTransform, PrepCombiner
+from visualize import ImagePlot
 
 
 class DetectCircle(AbstractFeature):
     def __init__(self, sigma=3, max_resized=64):
         self.sigma = sigma
         self.max_resized = max_resized
-        self.transform = PrepCombiner([BWTransform(),EqualizerTransform()])
+        self.transform = PrepCombiner([BWTransform(), EqualizerTransform()])
+
+    def _process2(self, im):
+        (width, height, _) = im.image.shape
+
+        img_adapted = im.prep(self.transform)
+
+        if width > self.max_resized or height > self.max_resized:
+            scaleHeight = self.max_resized / height
+            scaleWidth = self.max_resized / width
+            scale = min(scaleHeight, scaleWidth)
+            img_adapted = resize(img_adapted, (int(width * scale), int(height * scale)))
+
+        edges = canny(img_adapted, sigma=self.sigma)
+
+        result = hough_ellipse(edges, accuracy=10)
+        result.sort(order='accumulator')
+
+        best = list(result[-1])
+        return [best[0]]
 
     def process(self, im):
+        return self._process2(im)
+
         (width, height, _) = im.image.shape
 
         img_adapted = im.prep(self.transform)
@@ -43,7 +65,7 @@ class DetectCircle(AbstractFeature):
             if len(peaks) > 0:
                 accums.extend(h[peaks[:, 0], peaks[:, 1]])
 
-        if len(accums) == 0: #TODO: fix, should not happen
+        if len(accums) == 0:  # TODO: fix, should not happen
             return [0]
 
         idx = np.argmax(accums)

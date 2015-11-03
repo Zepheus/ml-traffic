@@ -2,13 +2,6 @@ from os.path import basename
 
 # Own packages
 from learn import *
-from features import *
-from Load import *
-from image_loader import *
-from cross_validation import cross_validate
-from skimage.color import *
-from visualize import *
-from skimage import io
 from MetaParameterEstimators import *
 
 
