@@ -6,7 +6,7 @@ from skimage import transform
 
 # own packages
 from image_loader import *
-
+from features import *
 
 def split_kfold(images, k):
     kf = KFold(len(images), n_folds=k)
