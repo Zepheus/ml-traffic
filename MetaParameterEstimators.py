@@ -60,3 +60,17 @@ def estimateDetectSymmetrySmallBlockParameters(directories, trainer):
 def estimateColorCenterParameters(directories, trainer):
     estimateMeta(directories, trainer, [(v, ColorCenter(size=v)) for v in range(1, 20)], "scale size",
                  [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(1, 1)), DetectSymmetry(), RegionRatio(), DetectCircle()])
+
+
+def estimateMetas(directories, trainer):
+    meta_estimators = [ #estimateHogResizeParameters,
+                        #estimateHogOrientationsParameters,
+                        #estimateHogCellsPerBlockParameters,
+                        #estimateDetectCircleParameters,
+                        estimateDetectSymmetrySmallBlockParameters,
+                        #estimateDetectSymmetryLargeBlockParameters,
+                        #estimateHogPixelsPerCellParameters
+                       ]
+
+    for estimator in meta_estimators:
+        estimator(directories, trainer)
