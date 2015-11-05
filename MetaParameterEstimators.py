@@ -41,7 +41,7 @@ def estimateHogPixelsPerCellParameters(directories, trainer):
 
 def estimateHogCellsPerBlockParameters(directories, trainer):
     estimateMeta(directories, trainer,
-                 [(v, HogFeature(cells_per_block=(v, v), orientations=5, pixels_per_cell=(8, 8))) for v in range(1, 10)], "pixels per cell",
+                 [(v, HogFeature(cells_per_block=(v, v), orientations=5, pixels_per_cell=(8, 8))) for v in range(1, 10)], "cells per block",
                  [HsvFeature(), DetectCircle(), DetectSymmetry(), RegionRatio()])
 
 
