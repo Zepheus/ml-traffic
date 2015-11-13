@@ -10,14 +10,14 @@ import os
 def test_feature(directories, trainers):
     images = load(directories, True, permute=False)
     for image in images:
-        if '00085_02840.png' in image.filename:
+        if '00127_12714' in image.filename:
             feature = HsvFeature()
             feature.process(image)
 
 #     circles = [i for i in images if i.label == "D10"]
 #     non_circles = [i for i in images if i.label == "B3"]
 #     # circles = [i for i in images if
-#     #           i.super_label == "blueCircles" or i.super_label == "red_blue_circles" or i.super_label == "red_circles"]
+#     #           i.super_label == "blueCircles" or i.super_label == "red_blue_circles" or i.super_lab  el == "red_circles"]
 #     # non_circles = [i for i in images if
 #     #               i.super_label == "squares" or i.super_label == "diamonds" or i.super_label == "reversed_triangles"]
 #     feature = DetectCircle()
@@ -31,4 +31,4 @@ def test_feature(directories, trainers):
 #     # BoxPlot().show(["circles", "non_circles"], [circle_features, non_circle_features])
 
 
-test_feature(["data/train/triangles/A7A"], LogisticRegressionTrainer(181.0))
+test_feature(["data/train/diamonds/B9"], LogisticRegressionTrainer(181.0))
