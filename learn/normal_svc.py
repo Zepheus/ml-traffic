@@ -4,10 +4,11 @@ from sklearn import preprocessing
 
 
 class NormalSVCTrainer(AbstractLearner):
-
-    def __init__(self, kernel='linear', penalty=1.0, cache=200, scale=True, scheme='ovr'):
-        self.learner = SVC(C=penalty, kernel=kernel, probability=True, cache_size=cache, decision_function_shape=scheme)
+    def __init__(self, kernel='linear', gamma='auto', penalty=1.0, cache=200, scale=True, scheme='ovr', class_w='balanced'):
+        self.learner = SVC(C=penalty, kernel=kernel, gamma=gamma, probability=True, cache_size=cache, decision_function_shape=scheme,
+                           class_weight=class_w)
         self.kernel = kernel
+        self.gamma = gamma
         self.penalty = penalty
         self.scheme = scheme
         self.scale = scale
@@ -35,5 +36,5 @@ class NormalSVCTrainer(AbstractLearner):
             return self.learner.predict_proba(x)
 
     def __str__(self):
-        return 'SVC (kernel=%s, penalty: %f, scheme: %s)' % (self.kernel, self.penalty, self.scheme)
-
+        return 'SVC (kernel=%s, penalty: %f, scheme: %s, gamma=%s)' % \
+               (self.kernel, self.penalty, self.scheme, str(self.gamma))

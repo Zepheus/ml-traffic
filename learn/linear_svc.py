@@ -5,7 +5,7 @@ from sklearn import preprocessing
 
 class LinearSVCTrainer(AbstractLearner):
 
-    def __init__(self, penalty=1.0,  scale=True):
+    def __init__(self, penalty=1.0, scale=True, gamma='auto'):
         self.learner = LinearSVC(C=1.0)
         self.penalty = penalty
         self.scale = scale

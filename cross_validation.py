@@ -115,6 +115,8 @@ def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=T
         if multitrain:
             for trainer_idx, trainer_factory in enumerate(trainer_function):
                 trainer = trainer_factory()
+                if verbose:
+                    print('    Starting calculating with %s' % str(trainer))
                 error = single_validate(trainer, train_data, train_classes, test_data, test_classes, test_images,
                                         verbose, verboseFiles)
                 error_ratios[trainer_idx].append(error)
@@ -183,4 +185,4 @@ def cross_grid_search(directories, trainer, features, parameters, augment=True, 
 
 def trainFolds(directories, trainers, features):
     images = load(directories, True, permute=False)
-    cross_validate(images, features, trainers, k=10, verbose=True, verboseFiles=True)  # use 10 folds, no pca
+    cross_validate(images, features, trainers, k=10, verbose=True, verboseFiles=False)  # use 10 folds, no pca
