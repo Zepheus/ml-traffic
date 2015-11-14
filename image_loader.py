@@ -59,8 +59,9 @@ class LabelledImage:
     def __str__(self):
         return self.filename
 
+
 def augment_images(images):
-    rotators = list([RotateTransform(degrees) for degrees in [-10.0, 10.0]]) + [GaussianTransform()]
+    rotators = list([RotateTransform(degrees) for degrees in [-7.0, 7.0]])
     augmented = []
     for img in images:
         for idx, transform in enumerate(rotators):
@@ -68,6 +69,7 @@ def augment_images(images):
             newImage = LabelledImage(transformed, "%s_aug_%d" % (img.filename, idx), img.label, img.super_label)
             augmented.append(newImage)
     return images + augmented
+
 
 def load(directories, is_train_data, permute=True):
     print('Loading images. Train: %r' % is_train_data)

@@ -11,8 +11,7 @@ def estimateMeta(directories, trainer, rangeValues, label, staticFeatures):
     for v, feature in rangeValues:
         print("Optimizing %s: %f" % (feature.key(), v))
         feature_calculator = [feature] + staticFeatures
-        error_rate = cross_validate(images, feature_calculator, trainer, k=10,
-                                          use_super_class=False, number_of_pca_components=0, verbose=False)
+        error_rate = cross_validate(images, feature_calculator, trainer, k=10, verbose=False)
         print("Error rate: %f" % error_rate)
         results.append([v, error_rate])
 

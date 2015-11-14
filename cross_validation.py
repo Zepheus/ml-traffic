@@ -7,6 +7,8 @@ from skimage import transform
 # own packages
 from image_loader import *
 from features import *
+from sklearn.grid_search import GridSearchCV
+from sklearn.metrics import classification_report
 
 def split_kfold(images, k):
     kf = KFold(len(images), n_folds=k)
@@ -75,18 +77,10 @@ def single_validate(trainer, train_data, train_classes, test_data, test_classes,
     return error
 
 
-def augment_rotated(images):
-    augmented = np.array([LabelledImage(
-        transform.rotate(img.image, 90.0),
-        img.filename + '_rotated',
-        img.label)
-                          for img in images])
-    return np.concatenate((images, augmented))
-
-
-def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, augmented=True,
+def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=True,
                    verbose=True, verboseFiles=False):
     # fold = split_kfold(images, k)
+
     fold = split_special(images, k)
     if verbose:
         print('Split into %d folds' % len(fold))
@@ -113,9 +107,9 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         feature_extraction(test_images, feature_combiner, verbose=verbose)
 
         train_data = [image.getFeatureVector() for image in train_images]
-        train_classes = [image.super_label if use_super_class else image.label for image in train_images]
+        train_classes = [image.label for image in train_images]
         test_data = [image.getFeatureVector() for image in test_images]
-        test_classes = [image.super_label if use_super_class else image.label for image in test_images]
+        test_classes = [image.label for image in test_images]
 
         # Train
         if multitrain:
@@ -154,8 +148,39 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         return mean_errors
 
 
-def trainFolds(directories, trainers):
+def cross_grid_search(directories, trainer, features, parameters, augment=True, verbose=True, numjobs=1):
+    print('Grid search using %d jobs' % numjobs)
     images = load(directories, True, permute=False)
-    combiner = [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96),
-                DetectSymmetry(blocksize=3, size=96), RegionRatio()]  # Feature selection
-    cross_validate(images, combiner, trainers, k=10, use_super_class=False, verboseFiles=True)  # use 10 folds, no pca
+
+    # Augment train
+    if augment:
+        images = augment_images(images)
+        print('Augmented train images to %d samples' % len(images))
+
+    feature_extraction(images, features, verbose=verbose)
+    train_data = [image.getFeatureVector() for image in images]
+    train_classes = [image.label for image in images]
+    classes = list(set(train_classes))
+    class_to_index = {key: index for index, key in enumerate(classes)}
+    labels = np.concatenate(np.array([[class_to_index[name] for name in train_classes]]))
+
+    # TODO: custom CV object (like above)
+    for score in ['precision', 'recall']:
+        print('Optimizing %s, stay tight...' % score)
+        clf = GridSearchCV(trainer, parameters, cv=5, scoring='%s_weighted' % score, n_jobs=numjobs)
+        clf.fit(train_data, labels)
+        print("Best parameters set found on development set (%s):" % score)
+        print()
+        print(clf.best_params_)
+        print()
+        print("Grid scores on development set:")
+        print()
+        for params, mean_score, scores in clf.grid_scores_:
+            print("%0.3f (+/-%0.03f) for %r"
+                  % (mean_score, scores.std() * 2, params))
+        print()
+
+
+def trainFolds(directories, trainers, features):
+    images = load(directories, True, permute=False)
+    cross_validate(images, features, trainers, k=10, verbose=True, verboseFiles=True)  # use 10 folds, no pca
