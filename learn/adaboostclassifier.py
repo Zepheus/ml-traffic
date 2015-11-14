@@ -13,6 +13,6 @@ class AdaLearner(AbstractLearner):
     def _predict(self, x):
         return self.learner.predict(x)
 
-    def predict_proba(self, x):
+    def _predict_proba(self, x):
         return self.learner.predict_proba(x)
 
