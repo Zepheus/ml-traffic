@@ -7,3 +7,4 @@ from preps.Segmentation import Segmentation
 from preps.EqualizerTransform import EqualizerTransform
 from preps.PrepCombiner import PrepCombiner
 from preps.IntegralTransform import IntegralTransform
+from preps.rotate_transform import RotateTransform

@@ -7,4 +7,5 @@ from learn.knn import KNN
 from learn.linear_svc import LinearSVCTrainer
 from learn.bagging import BaggingLearner
 from learn.adaboostclassifier import AdaLearner
+from learn.normal_svc import NormalSVCTrainer
 

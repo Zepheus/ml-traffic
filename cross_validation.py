@@ -84,7 +84,7 @@ def augment_rotated(images):
     return np.concatenate((images, augmented))
 
 
-def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, number_of_pca_components=0,
+def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_class=True, augmented=True,
                    verbose=True, verboseFiles=False):
     # fold = split_kfold(images, k)
     fold = split_special(images, k)
@@ -102,6 +102,11 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
         assert len(train_images) + len(test_images) == len(images)
         if verbose:
             print('-------- calculating fold %d --------' % (i + 1))
+
+        # Augment train
+        if augmented:
+            train_images = augment_images(train_images)
+            print('Augmented train images to %d samples' % len(train_images))
 
         # Feature extraction
         feature_extraction(train_images, feature_combiner, verbose=verbose)
@@ -150,8 +155,7 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
 
 
 def trainFolds(directories, trainers):
-    images = load(directories, True, permute=True)
+    images = load(directories, True, permute=False)
     combiner = [HsvFeature(),  DetectCircle(sigma=1.8), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96),
                 DetectSymmetry(blocksize=3, size=96), RegionRatio()]  # Feature selection
-    cross_validate(images, combiner, trainers, k=10, use_super_class=False,
-                   number_of_pca_components=0, verboseFiles=True)  # use 10 folds, no pca
+    cross_validate(images, combiner, trainers, k=10, use_super_class=False, verboseFiles=True)  # use 10 folds, no pca
