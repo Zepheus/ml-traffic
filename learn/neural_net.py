@@ -4,21 +4,21 @@ import numpy as np
 
 class NeuralNet(AbstractLearner):
 
-    def __init__(self):
+    def __init__(self, num_units=500):
+        self.units = num_units
         self.learner = Classifier(
-            layers=[
+             layers=[
                 # Convolution("Rectifier", channels=10, pool_shape=(2,2), kernel_shape=(3, 3)),
-                Layer('Rectifier', units=600),
+                Layer('Rectifier', units=num_units),
                 Layer('Softmax')],
-            learning_rate=0.01,
-            learning_rule='momentum',
-            learning_momentum=0.9,
-            batch_size=25,
-            valid_size=0.1,
-            # valid_set=(X_test, y_test),
-            n_stable=10,
-            n_iter=10,
-            verbose=True)
+                learning_rate=0.01,
+                learning_rule='momentum',
+                learning_momentum=0.9,
+                batch_size=25,
+                valid_size=0.1,
+                n_stable=10,
+                n_iter=40,
+                verbose=False)
 
     def _train(self, x_train, y_train):
         print('Starting GPU training')
@@ -39,5 +39,5 @@ class NeuralNet(AbstractLearner):
         return self.learner.predict_proba(x)
 
     def __str__(self):
-        return 'NeuralNet'
+        return 'NeuralNet (units %d)' % self.units
 

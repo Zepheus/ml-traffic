@@ -1,9 +1,8 @@
-from learn import *
+from learn import NormalSVCTrainer, NeuralNet
 from MetaParameterEstimators import *
 from cross_validation import *
 import numpy as np
 from prediction import *
-from sklearn.svm import SVC
 
 
 features = [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96),
@@ -26,9 +25,9 @@ def createLinearTrainer(param):
 def createRbfTrainer(reg, gamma):
     return lambda: NormalSVCTrainer(kernel='rbf', scale=True, penalty=reg, gamma=gamma, cache=1000)
 
-def createNeuralNetwork():
-    return lambda: NeuralNet()
+def createNeuralNetwork(x):
+    return lambda: NeuralNet(num_units=x)
 
-trainFolds(["data/train/blue_circles"], createNeuralNetwork(), features) # mean error_ratio is 0.083940 (std: 0.008505)
+trainFolds(["data/train/"], [createNeuralNetwork(x) for x in range(100, 2000, 200)], features) # mean error_ratio is 0.083940 (std: 0.008505)
 #trainFolds(["data/train"], [createLinearTrainer(x) for x in [0.01, 0.1, 0.2]], features) # mean error_ratio is 0.083940 (std: 0.008505)
 #estimateMetas(['data/train'], lambda: LogisticRegressionTrainer(181.0))

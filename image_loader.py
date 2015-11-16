@@ -61,7 +61,7 @@ class LabelledImage:
 
 
 def augment_images(images):
-    rotators = list([RotateTransform(degrees) for degrees in [-7.0, 7.0]])
+    rotators = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + [GaussianTransform()]
     augmented = []
     for img in images:
         for idx, transform in enumerate(rotators):
