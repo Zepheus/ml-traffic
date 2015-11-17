@@ -2,33 +2,60 @@ from features import AbstractFeature
 from preps import PrepCombiner, BWTransform, ResizeTransform, IntegralTransform
 import numpy as np
 from concurrent.futures import *
+import os
+import re
 
 
 class HaarFeature(AbstractFeature):
-    def __init__(self, size=40, haarSizes=[2, 4, 5, 8, 10, 20]):
+    def __init__(self, size=40, haarSizes=[2, 4, 5, 8, 10, 20], n_haars=20, use_cached=True):
         checks = [size % x for x in haarSizes]
         i = np.nonzero(checks)[0]  # array is 1D so only index 0 is relevant
-        if (len(i) != 0):
+        if len(i) != 0:
             k = ", ".join(map(str, np.array(haarSizes)[i]))
             raise Exception("the following haarSizes are not compatible with the given size: %s" % k)
 
         self.haarSizes = haarSizes
         self.transform = PrepCombiner([ResizeTransform(size=size), BWTransform(), IntegralTransform()])
+        self.size = size
+        self.haars = [self._haar1, self._haar2, self._haar3]
+        self.useCached = use_cached
+        self.n_haars = n_haars
 
     def process(self, im):
         scaled = im.prep(self.transform)
         w, h = scaled.shape
 
-        haars = [self._haar1, self._haar2, self._haar3]
         features = []
-        executor = ThreadPoolExecutor(max_workers=5)
-        tasks = []
-        for s in self.haarSizes:
-            tasks.append(executor.submit(self._processWithSize, scaled, w, h, s, haars))
-        wait(tasks)
-        features = [t.result() for t in tasks]
+        if self.useCached and os.path.exists('haarImportance.txt'):
+            with open('haarImportance.txt') as file:
+                i = 0
+                pattern = re.compile(
+                    '\[size=(?P<size>[0-9]*)\]\[x=(?P<x>[0-9]*)\]\[y=(?P<y>[0-9]*)\]\[type=(?P<type>[0-9]*)\]'
+                )
+                for line in file:
+                    t = re.match(pattern, line)
+                    size = int(t.group("size"))
+                    x = int(t.group("x"))
+                    y = int(t.group("y"))
+                    type = int(t.group("type"))
 
-        return np.hstack(features)
+                    sub = scaled[x:x + size, y:y + size]
+                    features.append(self.haars[type](sub))
+
+                    if i == self.n_haars:
+                        break
+                    i += 1
+
+            return features
+        else:
+            executor = ThreadPoolExecutor(max_workers=5)
+            tasks = []
+            for s in self.haarSizes:
+                tasks.append(executor.submit(self._processWithSize, scaled, w, h, s, self.haars))
+            wait(tasks)
+            features = [t.result() for t in tasks]
+
+            return np.hstack(features)
 
     def _processWithSize(self, im, w, h, size, haars):
         features = []
