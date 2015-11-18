@@ -1,7 +1,6 @@
 from image_loader import load
 from features import HaarFeature
 import numpy as np
-from learn import LDA
 from sklearn.ensemble import ExtraTreesClassifier
 
 
