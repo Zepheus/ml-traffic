@@ -7,7 +7,7 @@ from sklearn.ensemble import ExtraTreesClassifier
 def lda(directories):
     images = load(directories, True, permute=False)
 
-    f = HaarFeature()
+    f = HaarFeature(use_cached=False)
     x = []
 
     for idx, im in enumerate(images):
