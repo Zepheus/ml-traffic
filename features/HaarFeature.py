@@ -18,15 +18,14 @@ class HaarFeature(AbstractFeature):
         self.transform = PrepCombiner([ResizeTransform(size=size), BWTransform(), IntegralTransform()])
         self.size = size
         self.haars = [self._haar1, self._haar2, self._haar3]
-        self.useCached = use_cached
         self.n_haars = n_haars
 
-    def process(self, im):
-        scaled = im.prep(self.transform)
-        w, h = scaled.shape
+        self.useCached = use_cached
+        if use_cached:
+            self.haarConfigs = []
+            if not os.path.exists('haarImportance.txt'):
+                raise Exception("No cached file available. Please create a haarImportance.txt file first")
 
-        features = []
-        if self.useCached and os.path.exists('haarImportance.txt'):
             with open('haarImportance.txt') as file:
                 i = 0
                 pattern = re.compile(
@@ -37,14 +36,23 @@ class HaarFeature(AbstractFeature):
                     size = int(t.group("size"))
                     x = int(t.group("x"))
                     y = int(t.group("y"))
-                    type = int(t.group("type"))
+                    haar_type = int(t.group("type"))
 
-                    sub = scaled[x:x + size, y:y + size]
-                    features.append(self.haars[type](sub))
+                    self.haarConfigs.append((size,x,y,haar_type))
 
                     if i == self.n_haars:
                         break
                     i += 1
+
+    def process(self, im):
+        scaled = im.prep(self.transform)
+        w, h = scaled.shape
+
+        features = []
+        if self.useCached:
+            for size, x, y, haar_type in self.haarConfigs:
+                sub = scaled[x:x + size, y:y + size]
+                features.append(self.haars[haar_type](sub))
 
             return features
         else:
