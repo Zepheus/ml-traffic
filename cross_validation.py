@@ -1,8 +1,7 @@
 from sklearn.cross_validation import KFold
-from sklearn.decomposition import PCA
 import itertools
 import random
-from skimage import transform
+
 # own packages
 from image_loader import *
 from features import *
@@ -21,14 +20,17 @@ def extract_pole_nr(image):
     return int(tail.split('_')[0])
 
 
-def split_special(images, maxFolds=10):
+def split_special(images, maxFolds=10, limit=False):
     class_by_pole = list([list([list(image_by_pole)
                                 for _, image_by_pole in
                                 itertools.groupby(sorted(img_by_class, key=lambda l: extract_pole_nr(l)),
                                                   lambda y: extract_pole_nr(y))])
                           for cl, img_by_class in
                           itertools.groupby(sorted(images, key=lambda p: p.label), lambda x: x.label)])
-    max_allowed_folds = min(maxFolds, min([len(x) for x in class_by_pole]))
+    if limit:
+        max_allowed_folds = min(maxFolds, min([len(x) for x in class_by_pole]))
+    else:
+        max_allowed_folds = maxFolds
 
     # Now we make sure that for each class, it is added to at least each fold
     # Warning: folds = [[]] * max_allowed_folds uses the same array reference for each!
@@ -39,16 +41,16 @@ def split_special(images, maxFolds=10):
     for cl in class_by_pole:
         permutations = list(range(len(cl)))
         random.shuffle(permutations)
-
-        # Spread permutation evenly over all folds
-        while len(permutations) >= max_allowed_folds:
-            for fold in range(max_allowed_folds):  # spread over the available folds
-                image_group = cl[permutations.pop(0)]
-                folds[fold].extend(image_group)
+        if limit:
+            # Spread permutation evenly over all folds
+            while len(permutations) >= max_allowed_folds:
+                for fold in range(max_allowed_folds):  # spread over the available folds
+                    image_group = cl[permutations.pop(0)]
+                    folds[fold].extend(image_group)
 
         # Now take care of the remaining items (distribute randomly, no other choice)
         for i in range(len(permutations)):
-            fold = random.randrange(len(permutations))
+            fold = random.randrange(len(folds))
             image_group = cl[permutations.pop(0)]
             folds[fold].extend(image_group)
 
@@ -113,8 +115,11 @@ def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=T
         # Augment train
         if augmented:
             train_images = augment_images(train_images)
-            print('Augmented train images to %d samples' % len(train_images))
-
+            if verbose:
+                print('Augmented train images to %d samples' % len(train_images))
+        else:
+            if verbose:
+                print('Traning on %d images.' % len(train_images))
         # Feature extraction
         train_classes = [image.label for image in train_images]
         test_classes = [image.label for image in test_images]
@@ -141,6 +146,8 @@ def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=T
                     print('    error ratio of fold: %f (trainer %s)' % (error, str(trainer)))
         else:
             trainer = trainer_function()
+            if verbose:
+                print('    Starting calculating with %s' % str(trainer))
             error = single_validate(trainer, train_data, train_classes, test_data, test_classes, test_images, verbose,
                                     verboseFiles)
 
@@ -200,6 +207,6 @@ def cross_grid_search(directories, trainer, features, parameters, augment=True, 
         print()
 
 
-def trainFolds(directories, trainers, features):
+def trainFolds(directories, trainers, features, augment=True, folds=10):
     images = load(directories, True, permute=False)
-    cross_validate(images, features, trainers, k=10, verbose=True, verboseFiles=False)  # use 10 folds, no pca
+    cross_validate(images, features, trainers, k=folds, verbose=True, verboseFiles=False, augmented=augment)  # use 10 folds, no pca

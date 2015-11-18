@@ -1,7 +1,6 @@
 from os.path import basename
 from image_loader import *
 
-
 def train_and_predict(trainer_function, feature_combiner, train_directories=['data/train'],
                       test_directories=['data/test'], augment=True):
     # Load data
