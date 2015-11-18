@@ -10,3 +10,4 @@ from preps.IntegralTransform import IntegralTransform
 from preps.rotate_transform import RotateTransform
 from preps.GaussianFilter import GaussianTransform
 from preps.mirror_transform import MirrorTransform
+from preps.squeeze_transform import SqueezeTransform

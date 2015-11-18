@@ -2,16 +2,15 @@ import os
 import sys
 import numpy as np
 from skimage import io
-from preps import RotateTransform, GaussianTransform, MirrorTransform
+from preps import RotateTransform, GaussianTransform, MirrorTransform, SqueezeTransform
 from random import shuffle
 
-class LabelledImage(object):
 
-    def __init__(self, filename, label='Unknown', superLabel='Unknown'):
+class LabelledImage(object):
+    def __init__(self, filename, label='Unknown'):
         self._image = None
         self.filename = filename
         self.label = label
-        self.super_label = superLabel
         self.features = {}
         self.preps = {}
 
@@ -20,6 +19,10 @@ class LabelledImage(object):
         if self._image is None:
             self._image = io.imread(self.filename)
         return self._image
+
+    @image.setter
+    def image(self, value):
+        self._image = value
 
     def isSet(self, feature):
         if feature.key() == "FeatureCombiner": return False
@@ -68,13 +71,14 @@ class LabelledImage(object):
 
 
 def augment_images(images):
-    rotators = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]])
-              # [GaussianTransform(), MirrorTransform()]
+    rotators = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
+               [SqueezeTransform(), MirrorTransform()]
     augmented = []
     for img in images:
         for idx, transform in enumerate(rotators):
             transformed = transform.process(img.image)
-            newImage = LabelledImage(transformed, "%s_aug_%d" % (img.filename, idx), img.label, img.super_label)
+            newImage = LabelledImage("%s_aug_%d" % (img.filename, idx), img.label)
+            newImage.image = transformed # fix for lazy loading
             augmented.append(newImage)
     return images + augmented
 
@@ -88,10 +92,9 @@ def load(directories, is_train_data, permute=True):
                 # images = io.imread_collection(os.path.join(dirpath, '*.png'))
                 if is_train_data:
                     label = os.path.basename(dirpath)
-                    super_label = os.path.basename(os.path.dirname(dirpath))
                 for fn in filenames:
                     if is_train_data:
-                        values.append(LabelledImage(os.path.join(dirpath,fn), label, super_label))
+                        values.append(LabelledImage(os.path.join(dirpath, fn), label))
                     else:
                         values.append(LabelledImage(fn))
     print('Loaded %d images.' % len(values))

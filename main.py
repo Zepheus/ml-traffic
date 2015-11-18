@@ -1,4 +1,4 @@
-from learn import NormalSVCTrainer, LogisticRegressionTrainer
+from learn import NormalSVCTrainer, LogisticRegressionTrainer, NeuralNet
 from cross_validation import *
 from prediction import *
 
