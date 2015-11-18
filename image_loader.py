@@ -96,7 +96,7 @@ def load(directories, is_train_data, permute=True):
                     if is_train_data:
                         values.append(LabelledImage(os.path.join(dirpath, fn), label))
                     else:
-                        values.append(LabelledImage(fn))
+                        values.append(LabelledImage(os.path.join(dirpath, fn)))
     print('Loaded %d images.' % len(values))
     if permute:
         shuffle(values)

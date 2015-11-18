@@ -10,14 +10,14 @@ def train_and_predict(trainer_function, feature_combiner, train_directories=['da
         print('Could not find train images. Aborting')
         return
 
-    if augment:
-        train_images = augment_images(train_images)
-        print('Augmented train images.')
-
     test_images = load(test_directories, False, False)
     if len(test_images) == 0:
         print('Could not find test images. Aborting')
         return
+
+    if augment:
+        train_images = augment_images(train_images)
+        print('Augmented train images.')
 
     print('Images loaded')
 

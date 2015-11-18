@@ -4,11 +4,11 @@ from skimage.transform import resize
 
 class SqueezeTransform(AbstractPrep):
 
-    def __init__(self, ratio=0.75):
+    def __init__(self, ratio=0.8):
         self.ratio = ratio
 
     def process(self, im):
         (w, h, _) = im.shape
-        w *= self.ratio
+        w = int(w*self.ratio)
         return resize(im, [w, h])
 
