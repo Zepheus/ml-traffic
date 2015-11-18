@@ -22,16 +22,28 @@ class AbstractLearner(metaclass=ABCMeta):
         class_to_index = {key: index for index, key in enumerate(self.classes)}
         self.labels = np.concatenate(np.array([[class_to_index[name] for name in y_train]]))
 
+    @staticmethod
+    def fit_array(x):
+        if isinstance(x, list):
+            return np.array(x, ndmin=2, dtype=np.float64)
+        else:
+            dimensions = len(x.shape)
+            return x.reshape(1, -1) if dimensions == 1 else x
+
     def predict(self, x):
+        x = AbstractLearner.fit_array(x)
         indices = self._predict(x)
         return [self.classes[idx] for idx in indices]
+
+    def predict_proba(self, x):
+        return self._predict_proba(AbstractLearner.fit_array(x))
 
     @abstractmethod
     def _predict(self, x):
         pass
 
     @abstractmethod
-    def predict_proba(self, x):
+    def _predict_proba(self, x):
         pass
 
     def __str__(self):

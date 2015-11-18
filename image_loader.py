@@ -2,7 +2,8 @@ import os
 import sys
 import numpy as np
 from skimage import io
-
+from preps import RotateTransform, GaussianTransform, MirrorTransform
+from random import shuffle
 
 class LabelledImage(object):
 
@@ -66,6 +67,18 @@ class LabelledImage(object):
         return self.filename
 
 
+def augment_images(images):
+    rotators = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]])
+              # [GaussianTransform(), MirrorTransform()]
+    augmented = []
+    for img in images:
+        for idx, transform in enumerate(rotators):
+            transformed = transform.process(img.image)
+            newImage = LabelledImage(transformed, "%s_aug_%d" % (img.filename, idx), img.label, img.super_label)
+            augmented.append(newImage)
+    return images + augmented
+
+
 def load(directories, is_train_data, permute=True):
     print('Loading images. Train: %r' % is_train_data)
     values = []
@@ -81,7 +94,11 @@ def load(directories, is_train_data, permute=True):
                         values.append(LabelledImage(os.path.join(dirpath,fn), label, super_label))
                     else:
                         values.append(LabelledImage(fn))
-    return np.random.permutation(values) if permute else values
+    print('Loaded %d images.' % len(values))
+    if permute:
+        shuffle(values)
+        print('Shuffled images')
+    return values
 
 
 def print_update(idx, total, name):
