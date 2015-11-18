@@ -3,7 +3,7 @@ from cross_validation import *
 from prediction import *
 
 features = [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96),
-                 HaarFeature(n_haars=5), RegionRatio()]
+                 HaarFeature(n_haars=5)]
 
 features2 = [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96), RegionRatio()]
 

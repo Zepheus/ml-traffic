@@ -26,6 +26,14 @@ def train_and_predict(trainer_function, feature_combiner, train_directories=['da
     feature_extraction(test_images, feature_combiner)
     print('Features extracted')
 
+    # Free images
+    for img in train_images:
+        img.disposeImage()
+
+    for img in test_images:
+        img.disposeImage()
+    print('Freed image memory')
+
     # Feature transform
     train_data = [image.getFeatureVector() for image in train_images]
     # Train model

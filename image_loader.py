@@ -20,6 +20,11 @@ class LabelledImage(object):
             self._image = io.imread(self.filename)
         return self._image
 
+    def disposeImage(self):
+        if self._image is not None:
+            del self._image
+            self._image = None
+
     @image.setter
     def image(self, value):
         self._image = value
