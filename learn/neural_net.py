@@ -1,24 +1,25 @@
 from learn import AbstractLearner
 from sknn.mlp import Classifier, Layer, Convolution
+from sklearn.grid_search import GridSearchCV
 import numpy as np
 
 class NeuralNet(AbstractLearner):
 
-    def __init__(self, num_units=500):
+    def __init__(self, num_units=150):
         self.units = num_units
         self.learner = Classifier(
-             layers=[
-                # Convolution("Rectifier", channels=10, pool_shape=(2,2), kernel_shape=(3, 3)),
-                Layer('Rectifier', units=num_units),
+            layers=[
+                Layer('Sigmoid', units=100),
+                Layer('Sigmoid', units=81),
                 Layer('Softmax')],
-                learning_rate=0.01,
-                learning_rule='momentum',
-                learning_momentum=0.9,
-                batch_size=25,
-                valid_size=0.1,
-                n_stable=10,
-                n_iter=40,
-                verbose=False)
+            learning_rate=0.006,
+            valid_size=0.2,
+            n_stable=10,
+            verbose=True)
+        # self.learner = GridSearchCV(network, verbose=1, param_grid={
+        #     'learning_rate': [0.05, 0.01, 0.005, 0.001],
+        #     'hidden0__units': [4, 8, 12],
+        #     'hidden0__type': ["Rectifier", "Sigmoid", "Tanh"]})
 
     def _train(self, x_train, y_train):
         print('Starting GPU training')

@@ -2,7 +2,7 @@ from os.path import basename
 from image_loader import *
 
 
-def train_and_predict(trainer_function, feature_combiner, number_of_pca_components=0, train_directories=['data/train'],
+def train_and_predict(trainer_function, feature_combiner, train_directories=['data/train'],
                       test_directories=['data/test'], augment=True):
     # Load data
     trainer = trainer_function()
@@ -15,7 +15,7 @@ def train_and_predict(trainer_function, feature_combiner, number_of_pca_componen
         train_images = augment_images(train_images)
         print('Augmented train images.')
 
-    test_images = load(test_directories, False)
+    test_images = load(test_directories, False, False)
     if len(test_images) == 0:
         print('Could not find test images. Aborting')
         return

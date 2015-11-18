@@ -8,8 +8,9 @@ from prediction import *
 features = [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96),
                 DetectSymmetry(blocksize=3, size=96), RegionRatio()]
 
-#train_and_predict(lambda: NormalSVCTrainer(kernel='rbf', scale=True, penalty=100, gamma=1e-5, cache=1000),
-#                    features, 0, ['data/train'], ['data/test'])
+features2 = [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96), RegionRatio()]
+
+train_and_predict(lambda: NeuralNet(), features2, ['data/train'], ['data/test'])
 
 #cross_grid_search(['data/train'], SVC(C=1.0), features,
 #                  [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4], 'C': [1, 10, 100, 1000]},
@@ -28,6 +29,7 @@ def createRbfTrainer(reg, gamma):
 def createNeuralNetwork(x):
     return lambda: NeuralNet(num_units=x)
 
-trainFolds(["data/train/"], [createNeuralNetwork(x) for x in range(100, 2000, 200)], features) # mean error_ratio is 0.083940 (std: 0.008505)
+#trainFolds(["data/train"], createNeuralNetwork(150), features2)
+#trainFolds(["data/train/"], createNeuralNetwork(200), features) # mean error_ratio is 0.083940 (std: 0.008505)
 #trainFolds(["data/train"], [createLinearTrainer(x) for x in [0.01, 0.1, 0.2]], features) # mean error_ratio is 0.083940 (std: 0.008505)
 #estimateMetas(['data/train'], lambda: LogisticRegressionTrainer(181.0))

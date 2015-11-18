@@ -3,12 +3,13 @@ from sklearn.decomposition import PCA
 import itertools
 import random
 from skimage import transform
-
 # own packages
 from image_loader import *
 from features import *
+from preps import ResizeTransform
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report
+
 
 def split_kfold(images, k):
     kf = KFold(len(images), n_folds=k)
@@ -77,6 +78,16 @@ def single_validate(trainer, train_data, train_classes, test_data, test_classes,
     return error
 
 
+def extract_resized_images(images, size):
+    print('Extracting raw resized images at size %d' % size)
+    num_images = len(images)
+    transform = ResizeTransform(size)
+    buf = np.zeros((num_images, size, size, 3))
+    for i, img in enumerate(images):
+        img_data = transform.process(img.image)
+        buf[i, :, :, :] = img_data
+    return buf
+
 def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=True,
                    verbose=True, verboseFiles=False):
     # fold = split_kfold(images, k)
@@ -92,6 +103,8 @@ def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=T
         for i in range(len(trainer_function)):
             error_ratios.append([])
 
+    noFeatures = isinstance(feature_combiner, int)
+
     for i, (train_images, test_images) in enumerate(fold):
         assert len(train_images) + len(test_images) == len(images)
         if verbose:
@@ -103,13 +116,17 @@ def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=T
             print('Augmented train images to %d samples' % len(train_images))
 
         # Feature extraction
-        feature_extraction(train_images, feature_combiner, verbose=verbose)
-        feature_extraction(test_images, feature_combiner, verbose=verbose)
-
-        train_data = [image.getFeatureVector() for image in train_images]
         train_classes = [image.label for image in train_images]
-        test_data = [image.getFeatureVector() for image in test_images]
         test_classes = [image.label for image in test_images]
+        if not noFeatures:
+            feature_extraction(train_images, feature_combiner, verbose=verbose)
+            feature_extraction(test_images, feature_combiner, verbose=verbose)
+
+            train_data = [image.getFeatureVector() for image in train_images]
+            test_data = [image.getFeatureVector() for image in test_images]
+        else:
+            train_data = extract_resized_images(train_images, feature_combiner)
+            test_data = extract_resized_images(test_images, feature_combiner)
 
         # Train
         if multitrain:

@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 from skimage import io
-from preps import RotateTransform, GaussianTransform
+from preps import RotateTransform, GaussianTransform, MirrorTransform
 from random import shuffle
 
 class LabelledImage:
@@ -61,7 +61,8 @@ class LabelledImage:
 
 
 def augment_images(images):
-    rotators = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + [GaussianTransform()]
+    rotators = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]])
+              # [GaussianTransform(), MirrorTransform()]
     augmented = []
     for img in images:
         for idx, transform in enumerate(rotators):

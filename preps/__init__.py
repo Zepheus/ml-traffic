@@ -9,3 +9,4 @@ from preps.PrepCombiner import PrepCombiner
 from preps.IntegralTransform import IntegralTransform
 from preps.rotate_transform import RotateTransform
 from preps.GaussianFilter import GaussianTransform
+from preps.mirror_transform import MirrorTransform
