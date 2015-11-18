@@ -4,14 +4,21 @@ import numpy as np
 from skimage import io
 
 
-class LabelledImage:
-    def __init__(self, image, filename, label='Unknown', superLabel='Unknown'):
-        self.image = image
+class LabelledImage(object):
+
+    def __init__(self, filename, label='Unknown', superLabel='Unknown'):
+        self._image = None
         self.filename = filename
         self.label = label
         self.super_label = superLabel
         self.features = {}
         self.preps = {}
+
+    @property
+    def image(self):
+        if self._image is None:
+            self._image = io.imread(self.filename)
+        return self._image
 
     def isSet(self, feature):
         if feature.key() == "FeatureCombiner": return False
@@ -42,7 +49,7 @@ class LabelledImage:
     def calcFeature(self, feature):
         if isinstance(feature, list):
             for feature_single in feature:
-                self.calcFeature(feature_single) # recursively calculate features
+                self.calcFeature(feature_single)  # recursively calculate features
         else:
             if feature.key() not in self.features:
                 self.features[feature.key()] = feature.process(self)
@@ -50,10 +57,10 @@ class LabelledImage:
             return self.features[feature.key()]
 
     def prep(self, prep):
-        #if prep.key() not in self.preps:
+        # if prep.key() not in self.preps:
         #    self.preps[prep.key()] = prep.process(self.image)
         return prep.process(self.image)
-        #return self.preps[prep.key()]
+        # return self.preps[prep.key()]
 
     def __str__(self):
         return self.filename
@@ -63,17 +70,17 @@ def load(directories, is_train_data, permute=True):
     print('Loading images. Train: %r' % is_train_data)
     values = []
     for directory in directories:
-        for dirpath, dirnames, _ in os.walk(directory):
-            if not dirnames:
-                images = io.imread_collection(os.path.join(dirpath, '*.png'))
+        for dirpath, dirnames, filenames in os.walk(directory):
+            if filenames:
+                # images = io.imread_collection(os.path.join(dirpath, '*.png'))
                 if is_train_data:
                     label = os.path.basename(dirpath)
                     super_label = os.path.basename(os.path.dirname(dirpath))
-                for (image, fn) in zip(images, images.files):
+                for fn in filenames:
                     if is_train_data:
-                        values.append(LabelledImage(image, fn, label, super_label))
+                        values.append(LabelledImage(os.path.join(dirpath,fn), label, super_label))
                     else:
-                        values.append(LabelledImage(image, fn))
+                        values.append(LabelledImage(fn))
     return np.random.permutation(values) if permute else values
 
 
