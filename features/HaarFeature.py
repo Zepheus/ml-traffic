@@ -7,7 +7,7 @@ import re
 
 
 class HaarFeature(AbstractFeature):
-    def __init__(self, size=40, haarSizes=[2, 4, 5, 8, 10, 20], n_haars=20, use_cached=True):
+    def __init__(self, size=40, haarSizes=[2, 4, 5, 8, 10, 20, 40], n_haars=20, use_cached=True):
         checks = [size % x for x in haarSizes]
         i = np.nonzero(checks)[0]  # array is 1D so only index 0 is relevant
         if len(i) != 0:
