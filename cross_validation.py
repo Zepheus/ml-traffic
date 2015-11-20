@@ -114,7 +114,9 @@ def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=T
 
         # Augment train
         if augmented:
-            train_images = augment_images(train_images)
+            transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
+               [SqueezeTransform(), MirrorTransform()]
+            train_images = augment_images(train_images, transforms)
             if verbose:
                 print('Augmented train images to %d samples' % len(train_images))
         else:
@@ -180,7 +182,9 @@ def cross_grid_search(directories, trainer, features, parameters, augment=True, 
 
     # Augment train
     if augment:
-        images = augment_images(images)
+        transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
+               [SqueezeTransform(), MirrorTransform()]
+        images = augment_images(images, transforms)
         print('Augmented train images to %d samples' % len(images))
 
     feature_extraction(images, features, verbose=verbose)

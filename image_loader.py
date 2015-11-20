@@ -75,9 +75,8 @@ class LabelledImage(object):
         return self.filename
 
 
-def augment_images(images):
-    rotators = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
-               [SqueezeTransform(), MirrorTransform()]
+def augment_images(images, transforms):
+
     augmented = []
     for img in images:
         for idx, transform in enumerate(rotators):

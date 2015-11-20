@@ -1,6 +1,7 @@
 # Own
-from image_loader import *
+from image_loader import load, augment_images
 from cross_validation import split_special
+from preps import RotateTransform, SqueezeTransform, MirrorTransform
 
 # Skimage
 from skimage.transform import resize
@@ -19,30 +20,41 @@ import theano.tensor as T
 # Neural
 import lasagne
 
-
 def images_to_vectors(imgs, size):
-        vect = np.zeros((len(imgs), 1, size, size)) # Assume 1 channel
+        vect = np.zeros((len(imgs), 1, size, size), dtype=np.float32)  # Assume 1 channel
         for idx, img in enumerate(imgs):
-            vect[idx, 1, :, :] = img.image
+            vect[idx, 0, :, :] = img.image.astype(np.float32)
         return vect
 
 
-def load_images(directories, size=42, augment=False):
-        imgs = load_images(directories)
+def load_and_augment(directories, is_train=False, permute=True, augment=False):
+        imgs = load(directories, is_train, permute)
         if augment:
-            imgs = augment_images(imgs)
-
-        # Mass-resize them and convert to grayscale
-        for img in imgs:
-            img.image = resize(color.rgb2gray(img.image), (size, size)) # expect to return floats
-
+            print("Augmenting images")
+            transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
+               [SqueezeTransform(), MirrorTransform()]
+            imgs = augment_images(imgs, transforms)
+            print("Augmented to %d images" % len(imgs))
         return imgs
+
+
+def postprocess(imgs, size):
+     # Mass-resize them and convert to grayscale
+    print("Postprocessing images to grayscale and resize (at %d)" % size)
+    for img in imgs:
+            img.image = resize(color.rgb2gray(img.image), (size, size))  # expect to return floats
 
 
 def load_train_dataset(train_dir, test_dir, train_image_size=42):
 
-    train_images = load_images(train_dir, size=train_image_size, augment=True)
-    (trainset, valset) = next(split_special(train_images, 2, True))  # Use the old validation way
+    # Loading
+    train_images = load_and_augment(train_dir, is_train=True, permute=False, augment=False)
+
+    # Create validation and training set
+    (trainset, valset) = split_special(train_images, 2, True)[0]  # Use the old validation way
+
+    # Postprocess images
+    postprocess(train_images, size=train_image_size)
 
     X_train = images_to_vectors(trainset, train_image_size)
     X_val = images_to_vectors(valset, train_image_size)
@@ -209,7 +221,9 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=42):
     predict_fn = theano.function([input_var], test_prediction)
 
     print("Loading test images")
-    test_images = load_images(test_dir, size=input_size, augment=False)
+
+    test_images = load_and_augment(test_dir, is_train=False, permute=False, augment=False)
+    postprocess(test_images, size=input_size)
 
     for img in test_images[1:3]:
         identifier = int(os.path.splitext(basename(img.filename))[0])
