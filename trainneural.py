@@ -221,7 +221,6 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=42):
     predict_fn = theano.function([input_var], test_prediction)
 
     print("Loading test images")
-
     test_images = load_and_augment(test_dir, is_train=False, permute=False, augment=False)
     postprocess(test_images, size=input_size)
 
@@ -233,35 +232,13 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=42):
     for idx, img in enumerate(test_images):
         identifier = int(os.path.splitext(basename(img.filename))[0])
         probs = predictions[idx]
+        thesum = np.sum(probs)
+        if abs(thesum - 1) > 0.01:
+            print('Warning: Incorrect probabilities for %d' % identifier)
         file.write('%d,%s\n' % (identifier, str.join(',', [('%.13f' % p) for p in probs])))
         #print("%d, (len:%d): %s" % (identifier, len(probs), str.join(',', [str(p) for p in probs])))
-        
+
     file.close()
     print("Finished")
 
-train_and_predict(['data/train'], ['data/test'], num_epochs=10, input_size=42)
-    # file = open('result.csv', 'w')
-    # file.write('Id,%s\n' % str.join(',', id_to_class))
-    # for img in test_images:
-    #     test_data = np.reshape(img.image, (1, input_size, input_size))
-    #     predictions = predict_fn(test_data)
-    #
-    #     identifier = int(os.path.splitext(basename(image.filename))[0])
-    #     file.write('%d,%s\n' % (identifier, str.join(',', [('%.13f' % p) for p in predictions[0]])))
-    # file.close()
-    #
-    # # After training, we compute and print the test error:
-    # test_err = 0
-    # test_acc = 0
-    # test_batches = 0
-    # for batch in iterate_minibatches(X_test, y_test, 500, shuffle=False):
-    #     inputs, targets = batch
-    #     err, acc = val_fn(inputs, targets)
-    #     test_err += err
-    #     test_acc += acc
-    #     test_batches += 1
-    # print("Final results:")
-    # print("  test loss:\t\t\t{:.6f}".format(test_err / test_batches))
-    # print("  test accuracy:\t\t{:.2f} %".format(
-    #     test_acc / test_batches * 100))
-
+train_and_predict(['data/train'], ['data/test'], num_epochs=500, input_size=42)
