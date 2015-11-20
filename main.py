@@ -1,4 +1,4 @@
-from learn import NormalSVCTrainer, LogisticRegressionTrainer, NeuralNet
+from learn import NormalSVCTrainer, LogisticRegressionTrainer
 from cross_validation import *
 from prediction import *
 
@@ -13,14 +13,11 @@ def createLinearTrainer(param):
 def createRbfTrainer(reg, gamma):
     return lambda: NormalSVCTrainer(kernel='rbf', scale=True, penalty=reg, gamma=gamma, cache=1000)
 
-def createNeuralNetwork(x):
-    return lambda: NeuralNet(num_units=x)
-
 def createLogisticTrainer(x):
     return lambda: LogisticRegressionTrainer(regularization=x)
 
 
-train_and_predict(createNeuralNetwork(100), features, ['data/train'], ['data/test'])
+train_and_predict(createLogisticTrainer(181), features, ['data/train'], ['data/test'])
 
 #cross_grid_search(['data/train'], SVC(C=1.0), features,
 #                  [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4], 'C': [1, 10, 100, 1000]},
