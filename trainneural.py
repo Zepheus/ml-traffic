@@ -109,7 +109,7 @@ def build_cnn(input_size, input_var=None):
     # And, finally, the 10-unit output layer with 50% dropout on its inputs:
     network = lasagne.layers.DenseLayer(
             lasagne.layers.dropout(network, p=.5),
-            num_units=10,
+            num_units=81,
             nonlinearity=lasagne.nonlinearities.softmax)
 
     return network
@@ -225,12 +225,18 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=42):
     test_images = load_and_augment(test_dir, is_train=False, permute=False, augment=False)
     postprocess(test_images, size=input_size)
 
-    for img in test_images[1:3]:
-        identifier = int(os.path.splitext(basename(img.filename))[0])
-        test_data = np.reshape(img.image, (1, input_size, input_size))
-        predictions = predict_fn(test_data)
-        print("%d, (len:%d): %s" % (identifier, len(predictions), str.join(',', predictions)))
+    X_test = images_to_vectors(test_images, input_size)
+    predictions = predict_fn(X_test)
 
+    file = open('result.csv', 'w')
+    file.write('Id,%s\n' % str.join(',', id_to_class))
+    for idx, img in enumerate(test_images):
+        identifier = int(os.path.splitext(basename(img.filename))[0])
+        probs = predictions[idx]
+        file.write('%d,%s\n' % (identifier, str.join(',', [('%.13f' % p) for p in probs])))
+        #print("%d, (len:%d): %s" % (identifier, len(probs), str.join(',', [str(p) for p in probs])))
+        
+    file.close()
     print("Finished")
 
 train_and_predict(['data/train'], ['data/test'], num_epochs=10, input_size=42)
