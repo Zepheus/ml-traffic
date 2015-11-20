@@ -76,7 +76,7 @@ def build_cnn(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 1, input_size, input_size), input_var=input_var)
 
     network = lasagne.layers.Conv2DLayer(
-            network, num_filters=64, filter_size=(3, 3),
+            network, num_filters=32, filter_size=(3, 3),
             nonlinearity=lasagne.nonlinearities.rectify,
             W=lasagne.init.GlorotUniform())
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
@@ -92,7 +92,7 @@ def build_cnn(input_size, input_var=None):
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(network, p=.5),
+            lasagne.layers.dropout(network, p=.3),
             num_units=256,
             nonlinearity=lasagne.nonlinearities.rectify)
 
@@ -151,7 +151,7 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=42):
     # Descent (SGD) with Nesterov momentum, but Lasagne offers plenty more.
     params = lasagne.layers.get_all_params(network, trainable=True)
     updates = lasagne.updates.nesterov_momentum(
-            loss, params, learning_rate=0.01, momentum=0.9)
+            loss, params, learning_rate=0.02, momentum=0.9)
 
     # Create a loss expression for validation/testing. The crucial difference
     # here is that we do a deterministic forward pass through the network,
@@ -174,6 +174,7 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=42):
     # Finally, launch the training loop.
     print("Starting training...")
     # We iterate over epochs:
+    best_val_los = 99999
     for epoch in range(num_epochs):
         # In each epoch, we do a full pass over the training data:
         train_err = 0
@@ -195,14 +196,22 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=42):
             val_acc += acc
             val_batches += 1
 
+        val_loss = val_err / val_batches
+        if val_loss < best_val_los:
+            best_val_los = val_loss
+
         # Then we print the results for this epoch:
         print("Epoch {} of {} took {:.3f}s".format(
             epoch + 1, num_epochs, time.time() - start_time))
         print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
-        print("  validation loss:\t\t{:.6f}".format(val_err / val_batches))
+        print("  validation loss:\t\t{:.6f}".format(val_loss))
         print("  validation accuracy:\t\t{:.2f} %".format(
             val_acc / val_batches * 100))
 
+
+    if best_val_los > 0.40:
+        print("Did not get better results. Aborting")
+        return
 
     # Prediction
     print("Starting evaluation of testset")
