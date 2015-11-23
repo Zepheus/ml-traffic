@@ -2,18 +2,20 @@
 from image_loader import load, augment_images
 from cross_validation import split_special
 from preps import RotateTransform, SqueezeTransform, MirrorTransform
-from visualize import ImagePlot
+
 # Skimage
 from skimage.transform import resize
-from skimage import color, exposure, img_as_float, img_as_ubyte
+from skimage import exposure, img_as_float
 # OS
 from os.path import basename
 import os
 import time
+
 # Scientific
 import numpy as np
 import theano
 import theano.tensor as T
+
 # Neural
 import lasagne
 
@@ -35,6 +37,13 @@ def postprocess(imgs, size):
     for img in imgs:
         # preprocess using histogram equalization
         floatimg = img_as_float(img.image)
+
+        # Convert to YUV
+        #rgb2yuv = np.array([[0.299, 0.587, 0.114],
+        #            [-0.14713, -0.28886, 0.436],
+        #            [0.615, -0.51499, -0.10001]])
+        #floatimg = np.dot(floatimg, rgb2yuv.T)
+
         floatimg[:, :, 0] = exposure.equalize_hist(floatimg[:, :, 0])
         floatimg[:, :, 1] = exposure.equalize_hist(floatimg[:, :, 1])
         floatimg[:, :, 2] = exposure.equalize_hist(floatimg[:, :, 2])
@@ -51,7 +60,7 @@ def load_train_dataset(train_dir, test_dir, train_image_size=48, augment=True):
     if augment:
         print("Augmenting trainset images")
         transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
-                     [SqueezeTransform()]
+                     [SqueezeTransform(), MirrorTransform()]
         trainset = augment_images(trainset, transforms)
         print("Augmented to %d images" % len(trainset))
 
@@ -79,25 +88,30 @@ def build_cnn(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
 
     network = lasagne.layers.Conv2DLayer(
-        network, num_filters=100, filter_size=(7, 7),
+        network, num_filters=32, filter_size=(5, 5),
         nonlinearity=lasagne.nonlinearities.rectify,
         W=lasagne.init.GlorotUniform())
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.Conv2DLayer(
-        network, num_filters=150, filter_size=(4, 4),
+        network, num_filters=32, filter_size=(5, 5),
         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.Conv2DLayer(
-        network, num_filters=250, filter_size=(4, 4),
+        network, num_filters=32, filter_size=(3, 1),
         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.DenseLayer(
-        #network,
-        lasagne.layers.dropout(network, p=.5),
-        num_units=1000,
+        lasagne.layers.dropout(network, p=0.5),
+        num_units=256,
+        nonlinearity=lasagne.nonlinearities.rectify)
+    #network = lasagne.layers.FeaturePoolLayer(network, pool_size=(2, 2))
+
+    network = lasagne.layers.DenseLayer(
+        lasagne.layers.dropout(network, p=0.5),
+        num_units=256,
         nonlinearity=lasagne.nonlinearities.rectify)
 
     network = lasagne.layers.DenseLayer(
@@ -130,7 +144,7 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
         yield inputs[excerpt], targets[excerpt]
 
 
-def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=48):
+def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45):
     # Load the dataset
     print("Loading training data...")
     X_train, y_train, X_val, y_val, id_to_class = load_train_dataset(train_dir, test_dir, input_size)
@@ -155,7 +169,7 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=48):
     # Descent (SGD) with Nesterov momentum, but Lasagne offers plenty more.
     params = lasagne.layers.get_all_params(network, trainable=True)
     updates = lasagne.updates.nesterov_momentum(
-        loss, params, learning_rate=0.01, momentum=0.9)
+        loss, params, learning_rate=0.005, momentum=0.9)
 
     # Create a loss expression for validation/testing. The crucial difference
     # here is that we do a deterministic forward pass through the network,
@@ -216,10 +230,6 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=48):
             print('Saving model...')
             np.savez('model_epoch_%d.npz' % epoch, *lasagne.layers.get_all_param_values(network))
 
-    if best_val_los > 0.40:
-        print("Did not get better results. Aborting")
-        return
-
     # Prediction
     print("Starting evaluation of testset")
     test_prediction = lasagne.layers.get_output(network, deterministic=True)
@@ -247,4 +257,4 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=48):
     print("Finished")
 
 
-train_and_predict(['data/train'], ['data/test'], num_epochs=500, input_size=48)
+train_and_predict(['data/train'], ['data/test'], num_epochs=500, input_size=45)
