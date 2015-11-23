@@ -26,16 +26,8 @@ def images_to_vectors(imgs, size):
     return vect
 
 
-def load_and_augment(directories, is_train=False, permute=True, augment=False):
-    imgs = load(directories, is_train, permute)
-    if augment:
-        print("Augmenting images")
-        transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
-                     [SqueezeTransform(), MirrorTransform()]
-        imgs = augment_images(imgs, transforms)
-        print("Augmented to %d images" % len(imgs))
-    return imgs
-
+def load_images(directories, is_train=False, permute=True):
+    return load(directories, is_train, permute)
 
 def postprocess(imgs, size):
     # Mass-resize them and convert to grayscale
@@ -49,15 +41,23 @@ def postprocess(imgs, size):
         img.image = resize(floatimg, (size, size))  # expect to return floats
 
 
-def load_train_dataset(train_dir, test_dir, train_image_size=48):
+def load_train_dataset(train_dir, test_dir, train_image_size=48, augment=True):
     # Loading
-    train_images = load_and_augment(train_dir, is_train=True, permute=False, augment=False)
+    train_images = load_images(train_dir, is_train=True, permute=False)
 
     # Create validation and training set
     (trainset, valset) = split_special(train_images, 2, True)[0]  # Use the old validation way
 
+    if augment:
+        print("Augmenting trainset images")
+        transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
+                     [SqueezeTransform()]
+        trainset = augment_images(trainset, transforms)
+        print("Augmented to %d images" % len(trainset))
+
     # Postprocess images
-    postprocess(train_images, size=train_image_size)
+    postprocess(trainset, size=train_image_size)
+    postprocess(valset, size=train_image_size)
 
     X_train = images_to_vectors(trainset, train_image_size)
     X_val = images_to_vectors(valset, train_image_size)
@@ -95,8 +95,9 @@ def build_cnn(input_size, input_var=None):
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.DenseLayer(
-        lasagne.layers.dropout(network, p=.3),
-        num_units=300,
+        #network,
+        lasagne.layers.dropout(network, p=.5),
+        num_units=1000,
         nonlinearity=lasagne.nonlinearities.rectify)
 
     network = lasagne.layers.DenseLayer(
@@ -154,7 +155,7 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=48):
     # Descent (SGD) with Nesterov momentum, but Lasagne offers plenty more.
     params = lasagne.layers.get_all_params(network, trainable=True)
     updates = lasagne.updates.nesterov_momentum(
-        loss, params, learning_rate=0.02, momentum=0.9)
+        loss, params, learning_rate=0.01, momentum=0.9)
 
     # Create a loss expression for validation/testing. The crucial difference
     # here is that we do a deterministic forward pass through the network,
@@ -211,6 +212,10 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=48):
         print("  validation accuracy:\t\t{:.2f} %".format(
             val_acc / val_batches * 100))
 
+        if epoch % 10 == 0 and epoch != 0:
+            print('Saving model...')
+            np.savez('model_epoch_%d.npz' % epoch, *lasagne.layers.get_all_param_values(network))
+
     if best_val_los > 0.40:
         print("Did not get better results. Aborting")
         return
@@ -221,7 +226,7 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=48):
     predict_fn = theano.function([input_var], test_prediction)
 
     print("Loading test images")
-    test_images = load_and_augment(test_dir, is_train=False, permute=False, augment=False)
+    test_images = load_images(test_dir, is_train=False, permute=False)
     postprocess(test_images, size=input_size)
 
     X_test = images_to_vectors(test_images, input_size)

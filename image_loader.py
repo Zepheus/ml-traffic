@@ -79,7 +79,7 @@ def augment_images(images, transforms):
 
     augmented = []
     for img in images:
-        for idx, transform in enumerate(rotators):
+        for idx, transform in enumerate(transforms):
             transformed = transform.process(img.image)
             newImage = LabelledImage("%s_aug_%d" % (img.filename, idx), img.label)
             newImage.image = transformed # fix for lazy loading
