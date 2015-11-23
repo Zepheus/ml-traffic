@@ -22,7 +22,7 @@ def images_to_vectors(imgs, size):
     vect = np.zeros((len(imgs), 3, size, size), dtype=np.float32)  # Assume 3 channels
     for idx, img in enumerate(imgs):
         rolled = np.rollaxis(img.image.astype(np.float32), 2, 0)
-        vect[idx, 0, :, :] = rolled
+        vect[idx, :, :, :] = rolled
     return vect
 
 
@@ -76,26 +76,31 @@ def load_train_dataset(train_dir, test_dir, train_image_size=48):
 
 
 def build_cnn(input_size, input_var=None):
-    network = lasagne.layers.InputLayer(shape=(None, 1, input_size, input_size), input_var=input_var)
+    network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
 
     network = lasagne.layers.Conv2DLayer(
-        network, num_filters=32, filter_size=(3, 3),
+        network, num_filters=100, filter_size=(7, 7),
         nonlinearity=lasagne.nonlinearities.rectify,
         W=lasagne.init.GlorotUniform())
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.Conv2DLayer(
-        network, num_filters=32, filter_size=(5, 5),
+        network, num_filters=150, filter_size=(4, 4),
+        nonlinearity=lasagne.nonlinearities.rectify)
+    network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+
+    network = lasagne.layers.Conv2DLayer(
+        network, num_filters=250, filter_size=(4, 4),
         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.DenseLayer(
-        lasagne.layers.dropout(network, p=.5),
-        num_units=256,
+        lasagne.layers.dropout(network, p=.3),
+        num_units=300,
         nonlinearity=lasagne.nonlinearities.rectify)
 
     network = lasagne.layers.DenseLayer(
-        lasagne.layers.dropout(network, p=.5),
+        network,
         num_units=81,
         nonlinearity=lasagne.nonlinearities.softmax)
 
