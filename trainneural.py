@@ -1,7 +1,7 @@
 # Own
 from image_loader import load, augment_images
 from cross_validation import split_special
-from preps import RotateTransform, SqueezeTransform, MirrorTransform
+from preps import RotateTransform, SqueezeTransform, MirrorTransform, GaussianTransform
 
 # Skimage
 from skimage.transform import resize
@@ -60,7 +60,7 @@ def load_train_dataset(train_dir, test_dir, train_image_size=48, augment=True):
     if augment:
         print("Augmenting trainset images")
         transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
-                     [SqueezeTransform(), MirrorTransform()]
+                     [SqueezeTransform(), MirrorTransform()] # , GaussianTransform(sigma=3, multichannel=True)
         trainset = augment_images(trainset, transforms)
         print("Augmented to %d images" % len(trainset))
 
@@ -107,11 +107,11 @@ def build_cnn(input_size, input_var=None):
         lasagne.layers.dropout(network, p=0.5),
         num_units=256,
         nonlinearity=lasagne.nonlinearities.rectify)
-    #network = lasagne.layers.FeaturePoolLayer(network, pool_size=(2, 2))
+    network = lasagne.layers.FeaturePoolLayer(network, pool_size=2)
 
     network = lasagne.layers.DenseLayer(
         lasagne.layers.dropout(network, p=0.5),
-        num_units=256,
+        num_units=150,
         nonlinearity=lasagne.nonlinearities.rectify)
 
     network = lasagne.layers.DenseLayer(
@@ -144,19 +144,25 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
         yield inputs[excerpt], targets[excerpt]
 
 
-def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45):
-    # Load the dataset
-    print("Loading training data...")
-    X_train, y_train, X_val, y_val, id_to_class = load_train_dataset(train_dir, test_dir, input_size)
-
+def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weights_file=None):
     # Prepare Theano variables for inputs and targets
     input_var = T.tensor4('inputs')
     target_var = T.ivector('targets')
 
+    if weights_file is None:
+        # Load the dataset
+        print("Loading training data...")
+        X_train, y_train, X_val, y_val, id_to_class = load_train_dataset(train_dir, test_dir, input_size)
+        print("Dumping class ordering to id_to_class")
+        with open('epochs/id_to_class', mode='w') as classfile:
+            for item in id_to_class:
+                classfile.write("%s\n" % item)
+    else:
+        print("Loading from file...")
+
     # Create neural network model (depending on first command line parameter)
     print("Building model and compiling functions...")
     network = build_cnn(input_size, input_var)
-
     # Create a loss expression for training, i.e., a scalar objective we want
     # to minimize (for our multi-class problem, it is the cross-entropy loss):
     prediction = lasagne.layers.get_output(network)
@@ -189,46 +195,54 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45):
     # Compile a second function computing the validation loss and accuracy:
     val_fn = theano.function([input_var, target_var], [test_loss, test_acc])
 
-    # Finally, launch the training loop.
-    print("Starting training...")
-    # We iterate over epochs:
-    best_val_los = 99999
-    for epoch in range(num_epochs):
-        # In each epoch, we do a full pass over the training data:
-        train_err = 0
-        train_batches = 0
-        start_time = time.time()
-        for batch in iterate_minibatches(X_train, y_train, 500, shuffle=True):
-            inputs, targets = batch
-            train_err += train_fn(inputs, targets)
-            train_batches += 1
+    if weights_file is None:
+        # Finally, launch the training loop.
+        print("Starting training...")
+        # We iterate over epochs:
+        best_val_los = 99999
+        for epoch in range(num_epochs):
+            # In each epoch, we do a full pass over the training data:
+            train_err = 0
+            train_batches = 0
+            start_time = time.time()
+            for batch in iterate_minibatches(X_train, y_train, 500, shuffle=True):
+                inputs, targets = batch
+                train_err += train_fn(inputs, targets)
+                train_batches += 1
 
-        # And a full pass over the validation data:
-        val_err = 0
-        val_acc = 0
-        val_batches = 0
-        for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
-            inputs, targets = batch
-            err, acc = val_fn(inputs, targets)
-            val_err += err
-            val_acc += acc
-            val_batches += 1
+            # And a full pass over the validation data:
+            val_err = 0
+            val_acc = 0
+            val_batches = 0
+            for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
+                inputs, targets = batch
+                err, acc = val_fn(inputs, targets)
+                val_err += err
+                val_acc += acc
+                val_batches += 1
 
-        val_loss = val_err / val_batches
-        if val_loss < best_val_los:
-            best_val_los = val_loss
+            val_loss = val_err / val_batches
+            if val_loss < best_val_los:
+                best_val_los = val_loss
 
-        # Then we print the results for this epoch:
-        print("Epoch {} of {} took {:.3f}s".format(
-            epoch + 1, num_epochs, time.time() - start_time))
-        print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
-        print("  validation loss:\t\t{:.6f}".format(val_loss))
-        print("  validation accuracy:\t\t{:.2f} %".format(
-            val_acc / val_batches * 100))
+            # Then we print the results for this epoch:
+            print("Epoch {} of {} took {:.3f}s".format(
+                epoch + 1, num_epochs, time.time() - start_time))
+            print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
+            print("  validation loss:\t\t{:.6f}".format(val_loss))
+            print("  validation accuracy:\t\t{:.2f} %".format(
+                val_acc / val_batches * 100))
 
-        if epoch % 10 == 0 and epoch != 0:
-            print('Saving model...')
-            np.savez('model_epoch_%d.npz' % epoch, *lasagne.layers.get_all_param_values(network))
+            if epoch % 10 == 0 and epoch != 0:
+                print('Saving model...')
+                np.savez('epochs/model_epoch_%d.npz' % epoch, *lasagne.layers.get_all_param_values(network))
+    else:
+        with open('epochs/id_to_class', mode='r') as classfile:
+            id_to_class = list([line.rstrip() for line in classfile.readlines()])
+
+        with np.load(weights_file) as f:
+            param_values = [f['arr_%d' % i] for i in range(len(f.files))]
+            lasagne.layers.set_all_param_values(network, param_values)
 
     # Prediction
     print("Starting evaluation of testset")
@@ -257,4 +271,4 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45):
     print("Finished")
 
 
-train_and_predict(['data/train'], ['data/test'], num_epochs=500, input_size=45)
+train_and_predict(['data/train'], ['data/test'], num_epochs=300, input_size=45)
