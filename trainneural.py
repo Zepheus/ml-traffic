@@ -173,7 +173,7 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weight
     # Descent (SGD) with Nesterov momentum, but Lasagne offers plenty more.
     params = lasagne.layers.get_all_params(network, trainable=True)
     updates = lasagne.updates.nesterov_momentum(
-        loss, params, learning_rate=0.001, momentum=0.9)
+        loss, params, learning_rate=0.005, momentum=0.9)
 
     # Create a loss expression for validation/testing. The crucial difference
     # here is that we do a deterministic forward pass through the network,
@@ -283,4 +283,4 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weight
     print("Finished")
 
 
-train_and_predict(['data/train'], ['data/test'], num_epochs=400, input_size=45, flipover=10)
+train_and_predict(['data/train'], ['data/test'], num_epochs=400, input_size=45, flipover=200)
