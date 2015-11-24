@@ -1,7 +1,7 @@
 # Own
 from image_loader import load, augment_images
 from cross_validation import split_special
-from preps import RotateTransform, SqueezeTransform, MirrorTransform, GaussianTransform
+from preps import RotateTransform, SqueezeTransform, MirrorTransform, GaussianTransform, CropTransform
 
 # Skimage
 from skimage.transform import resize
@@ -31,23 +31,24 @@ def images_to_vectors(imgs, size):
 def load_images(directories, is_train=False, permute=True):
     return load(directories, is_train, permute)
 
-def postprocess(imgs, size):
+
+def postprocess(imgs, size, normalize=False):
     # Mass-resize them and convert to grayscale
     print("Postprocessing images and resize (at %d)" % size)
     for img in imgs:
         # preprocess using histogram equalization
         floatimg = img_as_float(img.image)
-
-        # Convert to YUV
-        #rgb2yuv = np.array([[0.299, 0.587, 0.114],
-        #            [-0.14713, -0.28886, 0.436],
-        #            [0.615, -0.51499, -0.10001]])
-        #floatimg = np.dot(floatimg, rgb2yuv.T)
-
-        floatimg[:, :, 0] = exposure.equalize_hist(floatimg[:, :, 0])
-        floatimg[:, :, 1] = exposure.equalize_hist(floatimg[:, :, 1])
-        floatimg[:, :, 2] = exposure.equalize_hist(floatimg[:, :, 2])
+        if normalize:
+            floatimg[:, :, 0] = exposure.equalize_hist(floatimg[:, :, 0])
+            floatimg[:, :, 1] = exposure.equalize_hist(floatimg[:, :, 1])
+            floatimg[:, :, 2] = exposure.equalize_hist(floatimg[:, :, 2])
         img.image = resize(floatimg, (size, size))  # expect to return floats
+
+
+def augmentation(images):
+    transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
+                     [SqueezeTransform(), MirrorTransform()] # , GaussianTransform(sigma=3, multichannel=True)
+    return augment_images(images, transforms)
 
 
 def load_train_dataset(train_dir, test_dir, train_image_size=48, augment=True):
@@ -59,9 +60,7 @@ def load_train_dataset(train_dir, test_dir, train_image_size=48, augment=True):
 
     if augment:
         print("Augmenting trainset images")
-        transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
-                     [SqueezeTransform(), MirrorTransform()] # , GaussianTransform(sigma=3, multichannel=True)
-        trainset = augment_images(trainset, transforms)
+        trainset = augmentation(trainset)
         print("Augmented to %d images" % len(trainset))
 
     # Postprocess images
@@ -71,7 +70,6 @@ def load_train_dataset(train_dir, test_dir, train_image_size=48, augment=True):
     X_train = images_to_vectors(trainset, train_image_size)
     X_val = images_to_vectors(valset, train_image_size)
 
-    # Wipe the image copies from memory
     for img in train_images:
         img.disposeImage()
 
@@ -144,7 +142,7 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
         yield inputs[excerpt], targets[excerpt]
 
 
-def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weights_file=None):
+def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weights_file=None, pretty_print=False, flipover=250):
     # Prepare Theano variables for inputs and targets
     input_var = T.tensor4('inputs')
     target_var = T.ivector('targets')
@@ -175,7 +173,7 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weight
     # Descent (SGD) with Nesterov momentum, but Lasagne offers plenty more.
     params = lasagne.layers.get_all_params(network, trainable=True)
     updates = lasagne.updates.nesterov_momentum(
-        loss, params, learning_rate=0.005, momentum=0.9)
+        loss, params, learning_rate=0.001, momentum=0.9)
 
     # Create a loss expression for validation/testing. The crucial difference
     # here is that we do a deterministic forward pass through the network,
@@ -198,44 +196,58 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weight
     if weights_file is None:
         # Finally, launch the training loop.
         print("Starting training...")
+        if pretty_print:
+            print("epoch\t|\ttraining loss\t|\tvalidation loss\t|\tvalidation accuracy")
+            print("----------------------------------------")
         # We iterate over epochs:
-        best_val_los = 99999
         for epoch in range(num_epochs):
             # In each epoch, we do a full pass over the training data:
             train_err = 0
             train_batches = 0
             start_time = time.time()
+
+            # We flip to start training full dataset
+            if flipover == epoch:
+                print("Flipping over to full dataset")
+                train_images = load_images(train_dir, is_train=True, permute=False)
+                train_images = augmentation(train_images)
+                postprocess(train_images, input_size)
+                X_train = images_to_vectors(train_images, input_size)
+                y_train = np.concatenate(np.array([[id_to_class.index(img.label) for img in train_images]], dtype=np.uint8))
+
             for batch in iterate_minibatches(X_train, y_train, 500, shuffle=True):
                 inputs, targets = batch
                 train_err += train_fn(inputs, targets)
                 train_batches += 1
 
-            # And a full pass over the validation data:
-            val_err = 0
-            val_acc = 0
-            val_batches = 0
-            for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
-                inputs, targets = batch
-                err, acc = val_fn(inputs, targets)
-                val_err += err
-                val_acc += acc
-                val_batches += 1
+            if epoch < flipover:
+                # And a full pass over the validation data:
+                val_err = 0
+                val_acc = 0
+                val_batches = 0
+                for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
+                    inputs, targets = batch
+                    err, acc = val_fn(inputs, targets)
+                    val_err += err
+                    val_acc += acc
+                    val_batches += 1
 
-            val_loss = val_err / val_batches
-            if val_loss < best_val_los:
-                best_val_los = val_loss
+            if epoch < flipover:
+                val_loss = val_err / val_batches
+                validation_acc = val_acc / val_batches * 100
+            training_loss = train_err / train_batches
+
+            print("Epoch {} of {} took {:.3f}s".format(epoch + 1, num_epochs, time.time() - start_time))
+            print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
+            if epoch < flipover:
+                print("  validation loss:\t\t{:.6f}".format(val_loss))
+                print("  validation accuracy:\t\t{:.2f} %".format(validation_acc))
 
             # Then we print the results for this epoch:
-            print("Epoch {} of {} took {:.3f}s".format(
-                epoch + 1, num_epochs, time.time() - start_time))
-            print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
-            print("  validation loss:\t\t{:.6f}".format(val_loss))
-            print("  validation accuracy:\t\t{:.2f} %".format(
-                val_acc / val_batches * 100))
-
-            if epoch % 10 == 0 and epoch != 0:
-                print('Saving model...')
+            if epoch % 50 == 0 and epoch != 0:
                 np.savez('epochs/model_epoch_%d.npz' % epoch, *lasagne.layers.get_all_param_values(network))
+                if pretty_print:
+                    print("{}\t|\t{:.6f}\t|\t{:.6f}\t|\t{:.2f}".format(epoch, training_loss, val_loss, validation_acc))
     else:
         with open('epochs/id_to_class', mode='r') as classfile:
             id_to_class = list([line.rstrip() for line in classfile.readlines()])
@@ -271,4 +283,4 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weight
     print("Finished")
 
 
-train_and_predict(['data/train'], ['data/test'], num_epochs=300, input_size=45)
+train_and_predict(['data/train'], ['data/test'], num_epochs=400, input_size=45, flipover=10)
