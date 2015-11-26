@@ -32,7 +32,7 @@ def load_images(directories, is_train=False, permute=True):
     return load(directories, is_train, permute)
 
 
-def postprocess(imgs, size, normalize=False):
+def postprocess(imgs, size, normalize=True):
     # Mass-resize them and convert to grayscale
     print("Postprocessing images and resize (at %d)" % size)
     for img in imgs:
@@ -283,4 +283,4 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weight
     print("Finished")
 
 
-train_and_predict(['data/train'], ['data/test'], num_epochs=400, input_size=45, flipover=200)
+train_and_predict(['data/train'], ['data/test'], num_epochs=500, input_size=45, flipover=200)
