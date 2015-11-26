@@ -48,10 +48,7 @@ def postprocess(imgs, size, normalize=False):
 def augmentation(images):
     transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
                      [SqueezeTransform(), MirrorTransform(),
-                      PerspectiveTransform(degrees=12, side='left'), PerspectiveTransform(degrees=25, side='left'),
-                      PerspectiveTransform(degrees=45, side='left'),
-                      PerspectiveTransform(degrees=12, side='right'), PerspectiveTransform(degrees=25, side='right'),
-                      PerspectiveTransform(degrees=45, side='right')]
+                       PerspectiveTransform(degrees=25, side='left'), PerspectiveTransform(degrees=25, side='right')]
     return augment_images(images, transforms)
 
 
@@ -90,18 +87,18 @@ def build_cnn(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
 
     network = lasagne.layers.Conv2DLayer(
-        network, num_filters=32, filter_size=(5, 5),
+        network, num_filters=32, filter_size=(6, 6),
         nonlinearity=lasagne.nonlinearities.rectify,
         W=lasagne.init.GlorotUniform())
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.Conv2DLayer(
-        network, num_filters=32, filter_size=(5, 5),
+        network, num_filters=64, filter_size=(5, 5),
         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
     network = lasagne.layers.Conv2DLayer(
-        network, num_filters=32, filter_size=(3, 1),
+        network, num_filters=32, filter_size=(3, 3),
         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
@@ -113,7 +110,7 @@ def build_cnn(input_size, input_var=None):
 
     network = lasagne.layers.DenseLayer(
         lasagne.layers.dropout(network, p=0.5),
-        num_units=150,
+        num_units=100,
         nonlinearity=lasagne.nonlinearities.rectify)
 
     network = lasagne.layers.DenseLayer(
