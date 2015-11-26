@@ -12,3 +12,4 @@ from preps.GaussianFilter import GaussianTransform
 from preps.mirror_transform import MirrorTransform
 from preps.squeeze_transform import SqueezeTransform
 from preps.crop_transform import CropTransform
+from preps.perspective_transform import PerspectiveTransform

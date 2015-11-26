@@ -1,7 +1,7 @@
 # Own
 from image_loader import load, augment_images
 from cross_validation import split_special
-from preps import RotateTransform, SqueezeTransform, MirrorTransform, GaussianTransform, CropTransform
+from preps import RotateTransform, SqueezeTransform, MirrorTransform, PerspectiveTransform
 
 # Skimage
 from skimage.transform import resize
@@ -32,7 +32,7 @@ def load_images(directories, is_train=False, permute=True):
     return load(directories, is_train, permute)
 
 
-def postprocess(imgs, size, normalize=True):
+def postprocess(imgs, size, normalize=False):
     # Mass-resize them and convert to grayscale
     print("Postprocessing images and resize (at %d)" % size)
     for img in imgs:
@@ -47,7 +47,11 @@ def postprocess(imgs, size, normalize=True):
 
 def augmentation(images):
     transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
-                     [SqueezeTransform(), MirrorTransform()] # , GaussianTransform(sigma=3, multichannel=True)
+                     [SqueezeTransform(), MirrorTransform(),
+                      PerspectiveTransform(degrees=12, side='left'), PerspectiveTransform(degrees=25, side='left'),
+                      PerspectiveTransform(degrees=45, side='left'),
+                      PerspectiveTransform(degrees=12, side='right'), PerspectiveTransform(degrees=25, side='right'),
+                      PerspectiveTransform(degrees=45, side='right')]
     return augment_images(images, transforms)
 
 
@@ -283,4 +287,4 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, weight
     print("Finished")
 
 
-train_and_predict(['data/train'], ['data/test'], num_epochs=500, input_size=45, flipover=200)
+train_and_predict(['data/train'], ['data/test'], num_epochs=400, input_size=45, flipover=200)

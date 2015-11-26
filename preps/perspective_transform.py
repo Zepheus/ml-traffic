@@ -6,7 +6,7 @@ from math import tan, radians
 
 class PerspectiveTransform(AbstractPrep):
 
-    def __init(self, degrees=12, side='left'):
+    def __init__(self, degrees=12, side='left'):
         self.degrees = degrees
         self.side = side
 
