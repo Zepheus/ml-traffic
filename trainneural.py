@@ -261,6 +261,7 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
 
 
 def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, augment=True):
+    print('Cross-validation using %d folds' % num_folds)
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
     classes_set = list(sorted(set(training_labels)))
@@ -343,4 +344,4 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, flipov
     print("Finished")
 
 #train_and_predict(['data/train'], ['data/test'], num_epochs=40, input_size=45, flipover=20)
-cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=2, augment=True)
+cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=3, augment=True)
