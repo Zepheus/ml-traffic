@@ -254,9 +254,9 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
     for idx, img in enumerate(test_images):
         probs = predictions[idx]
         thesum = np.sum(probs)
-        if abs(thesum - 1) > 0.01:
+        if abs(thesum - 1.0) > 0.01:
             print('Warning: Incorrect probabilities for %d' % img.identifier)
-        file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % p) for p in probs])))
+        file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % (p if p < 1.0 else 1.0)) for p in probs])))  # Take care of floating point rounding errors
 
     file.close()
 
@@ -330,8 +330,10 @@ def train_and_predict(train_dir, test_dir,
         train_images = augmentation(train_images)
         print("Augmented to %d images" % len(train_images))
 
+    i = 0
     for input_size, network, num_epochs, gray, learning_rate in zip(input_sizes, networks, epochs,
                                                                               grays, learning_rates):
+        i += 1
         print('Start training next network')
         postprocess(train_images, size=input_size, grayscale=gray)
 
@@ -352,6 +354,10 @@ def train_and_predict(train_dir, test_dir,
 
         print('Training network...')
         train(train_fn, val_fn, x_train, y_train, None, None, num_epochs, show_validation=False)
+
+        # Save network
+        print('Saving model %d' % i)
+        np.savez('model_%d.npz' % i, *lasagne.layers.get_all_param_values(convnet))
 
         # Now we predict the training set
         if test_images is None:
