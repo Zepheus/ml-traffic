@@ -188,7 +188,7 @@ def build_network(network, input_var, target_var, learning_rate=0.005, momentum=
     return train_fn, val_fn, predict_fn
 
 
-def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, input_size=45):
+def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, input_size=45, show_validation=True):
         print("Starting training...")
 
         for epoch in range(num_epochs):
@@ -203,28 +203,33 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, inpu
                 train_batches += 1
 
             # And a full pass over the validation data:
-            val_err = 0
-            val_acc = 0
-            val_batches = 0
-            for batch in iterate_minibatches(X_val, y_val, 256, shuffle=False):
-                inputs, targets = batch
-                err, acc = val_fn(inputs, targets)
-                val_err += err
-                val_acc += acc
-                val_batches += 1
+            if show_validation:
+                val_err = 0
+                val_acc = 0
+                val_batches = 0
+                for batch in iterate_minibatches(X_val, y_val, 256, shuffle=False):
+                    inputs, targets = batch
+                    err, acc = val_fn(inputs, targets)
+                    val_err += err
+                    val_acc += acc
+                    val_batches += 1
 
-            val_loss = val_err / val_batches
-            validation_acc = val_acc / val_batches * 100
+            timediff = time.time() - start_time
             training_loss = train_err / train_batches
-
-            print("Epoch {} of {} took {:.3f}s".format(epoch + 1, num_epochs, time.time() - start_time))
+            print("Epoch {} of {} took {:.3f}s".format(epoch + 1, num_epochs, timediff))
             print("  training loss:\t\t{:.6f}".format(training_loss))
-            print("  validation loss:\t\t{:.6f}".format(val_loss))
-            print("  validation accuracy:\t\t{:.2f} %".format(validation_acc))
+
+            if show_validation:
+                val_loss = val_err / val_batches
+                validation_acc = val_acc / val_batches * 100
+                print("  validation loss:\t\t{:.6f}".format(val_loss))
+                print("  validation accuracy:\t\t{:.2f} %".format(validation_acc))
         print('Finished %d iterations' % num_epochs)
+
 
 def predict(predict_fn, x_test):
     return predict_fn(x_test)
+
 
 def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
     file = open(filename, 'w')
@@ -235,7 +240,6 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
         if abs(thesum - 1) > 0.01:
             print('Warning: Incorrect probabilities for %d' % img.identifier)
         file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % p) for p in probs])))
-        # print("%d, (len:%d): %s" % (identifier, len(probs), str.join(',', [str(p) for p in probs])))
 
     file.close()
 
