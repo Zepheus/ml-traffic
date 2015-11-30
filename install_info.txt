@@ -1,2 +1,0 @@
-https://www.continuum.io/downloads
-http://docs.continuum.io/anaconda/ide_integration#pycharm

@@ -1,8 +1,11 @@
 from visualize import AbstractVisual
 import matplotlib.pyplot as plt
 
+# This class allows to visualize data using a boxplot.
 class BoxPlot(AbstractVisual):
 
+	# the input labels are the amount of boxplots that will be viewed
+	# the input data is a matrix of dimensions (n_labels x n_values)
     def _prep(self,labels,data):
         # Create a figure instance
         self.fig = plt.figure(1, figsize=(9, 6))

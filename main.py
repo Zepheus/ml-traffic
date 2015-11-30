@@ -18,17 +18,3 @@ def createLogisticTrainer(x):
 
 
 train_and_predict(createLogisticTrainer(181), features, ['data/train'], ['data/test'])
-
-#cross_grid_search(['data/train'], SVC(C=1.0), features,
-#                  [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4], 'C': [1, 10, 100, 1000]},
-#                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}])
-
-
-#def createRbfTrainer(gamma, c):
-#    return lambda: LinearSVCTrainer(kernel='rbf', scale=True, penalty=c)
-
-
-#trainFolds(["data/train"], createLogisticTrainer(181), features, augment=False, folds=3)
-#trainFolds(["data/train/"], createNeuralNetwork(200), features) # mean error_ratio is 0.083940 (std: 0.008505)
-#trainFolds(["data/train"], [createLinearTrainer(x) for x in [0.01, 0.1, 0.2]], features) # mean error_ratio is 0.083940 (std: 0.008505)
-#estimateMetas(['data/train'], lambda: LogisticRegressionTrainer(181.0))
