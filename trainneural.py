@@ -64,38 +64,6 @@ def augmentation(images):
                      [SqueezeTransform(), MirrorTransform()] # , GaussianTransform(sigma=3, multichannel=True)
     return augment_images(images, transforms)
 
-
-def load_train_dataset(train_dir, test_dir, train_image_size=48, augment=True):
-    # Loading
-    train_images = load_images(train_dir, is_train=True, permute=False)
-
-    # Create validation and training set
-    (trainset, valset) = split_special(train_images, 2, True)[0]  # Use the old validation way
-
-    if augment:
-        print("Augmenting trainset images")
-        trainset = augmentation(trainset)
-        print("Augmented to %d images" % len(trainset))
-
-    # Postprocess images
-    postprocess(trainset, size=train_image_size)
-    postprocess(valset, size=train_image_size)
-
-    X_train = images_to_vectors(trainset, train_image_size)
-    X_val = images_to_vectors(valset, train_image_size)
-
-    for img in train_images:
-        img.disposeImage()
-
-    training_labels = list([img.label for img in train_images])
-    classes_set = list(sorted(set(training_labels))) # USe sorted such that it is always thesame
-    class_to_index = {key: index for index, key in enumerate(classes_set)}
-    y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
-    y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
-
-    return X_train, y_train, X_val, y_val, classes_set
-
-
 def build_rgb_cnn(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
 
@@ -311,37 +279,70 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, augm
     print('Mean training accuracy: %f (std %f)' % (mean_accuracy, std_val_acc))
 
 
-def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, flipover=250):
+def train_and_predict(train_dir, test_dir,
+                      networks=[build_rgb_cnn], weights=[1], epochs=[400], flipovers=[250], input_sizes=[45], augment=True):
 
-    print('Loading dataset')
-    x_train, y_train, x_val, y_val, id_to_class = load_train_dataset(train_dir, test_dir, input_size)
-    input_var = T.tensor4('inputs')
-    target_var = T.ivector('targets')
-    network = build_rgb_cnn(input_size, input_var)
-    train_fn, val_fn, predict_fn = build_network(network, input_var, target_var)
+    train_images = load_images(train_dir, is_train=True, permute=False)
+    training_labels = list([img.label for img in train_images])
+    classes_set = list(sorted(set(training_labels)))
+    class_to_index = {key: index for index, key in enumerate(classes_set)}
 
-    if flipover > 0:
-        train(train_fn, val_fn, x_train, y_train, x_val, y_val, flipover)
-        print("Flipping over dataset to full trainset")
-        train_images = load_images(train_dir, is_train=True, permute=False)
-        train_images = augmentation(train_images)
-        postprocess(train_images, input_size)
-        x_train = images_to_vectors(train_images, input_size)
-        y_train = np.concatenate(np.array([[id_to_class.index(img.label) for img in train_images]], dtype=np.uint8))
-        if num_epochs - flipover > 0:
-            train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs - flipover)
-    else:
-        train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs)
+    test_images = None
+    preds = []
+    for input_size, network, num_epochs, flipover in zip(input_sizes, networks, epochs, flipovers):
 
-    # Prediction
-    print("Starting evaluation of testset")
-    test_images = sorted(load_images(test_dir, is_train=False, permute=False), key=lambda x: x.identifier)
-    postprocess(test_images, size=input_size)
+        print('Loading training dataset')
+        (trainset, valset) = split_special(train_images, 2, True)[0]  # Load using one training fold
+        if augment:
+            trainset = augmentation(trainset)
+            print("Augmented to %d images" % len(trainset))
 
-    x_test = images_to_vectors(test_images, input_size)
-    predictions = predict(predict_fn, x_test)
-    write_csv(test_images, predictions, id_to_class)
+        # Postprocess images
+        postprocess(trainset, size=input_size)
+        postprocess(valset, size=input_size)
+
+        x_train = images_to_vectors(trainset, input_size)
+        x_val = images_to_vectors(valset, input_size)
+
+        y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
+        y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
+
+        input_var = T.tensor4('inputs')
+        target_var = T.ivector('targets')
+        convnet = network(input_size, input_var)
+        train_fn, val_fn, predict_fn = build_network(convnet, input_var, target_var)
+
+        if flipover > 0:
+            train(train_fn, val_fn, x_train, y_train, x_val, y_val, flipover)
+            print("Flipping over dataset to full trainset")
+            train_images = load_images(train_dir, is_train=True, permute=False)
+            train_images = augmentation(train_images)
+            postprocess(train_images, input_size)
+            x_train = images_to_vectors(train_images, input_size)
+            y_train = np.concatenate(np.array([[class_to_index[img.label] for img in train_images]], dtype=np.uint8))
+            if num_epochs - flipover > 0:
+                train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs - flipover)
+        else:
+            train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs)
+
+        # Now we predict the training set
+        if test_images is None:
+            print("Loading test images")
+            test_images = sorted(load_images(test_dir, is_train=False, permute=False), key=lambda x: x.identifier)
+        postprocess(test_images, size=input_size)
+        x_test = images_to_vectors(test_images, input_size)
+        preds.append(predict(predict_fn, x_test))
+
+    predictions = np.zeros((len(test_images), len(class_to_index)))
+    for w, pred in zip(weights, preds):
+        predictions = predictions + w * pred
+
+    # Predictions
+    write_csv(test_images, predictions, class_to_index)
     print("Finished")
 
+train_and_predict(['data/train'],  ['data/test'],
+                  networks=[build_rgb_cnn], weights=[1], epochs=[30], flipovers=[15], input_sizes=[45], augment=True)
+
 #train_and_predict(['data/train'], ['data/test'], num_epochs=40, input_size=45, flipover=20)
-cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=3, augment=True)
+#cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=3, augment=True)
