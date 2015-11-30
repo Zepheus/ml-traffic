@@ -4,6 +4,7 @@ import numpy as np
 from skimage import io
 from preps import RotateTransform, GaussianTransform, MirrorTransform, SqueezeTransform
 from random import shuffle
+from os.path import basename
 
 
 class LabelledImage(object):
@@ -24,6 +25,10 @@ class LabelledImage(object):
         if self._image is not None:
             del self._image
             self._image = None
+
+    @property
+    def identifier(self):
+        return int(os.path.splitext(basename(self.filename))[0])
 
     @image.setter
     def image(self, value):
