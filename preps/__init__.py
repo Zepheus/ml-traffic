@@ -2,7 +2,6 @@ from preps.abstract_prep import AbstractPrep
 from preps.resize_transform import ResizeTransform
 from preps.bw_transform import BWTransform
 from preps.hsv_transform import HsvTransform
-from preps.segmentation import Segmentation
 from preps.equalizer_transform import EqualizerTransform
 from preps.prep_combiner import PrepCombiner
 from preps.integral_transform import IntegralTransform

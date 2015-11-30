@@ -129,8 +129,8 @@ def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=T
             feature_extraction(train_images, feature_combiner, verbose=verbose)
             feature_extraction(test_images, feature_combiner, verbose=verbose)
 
-            train_data = [image.getFeatureVector() for image in train_images]
-            test_data = [image.getFeatureVector() for image in test_images]
+            train_data = [image.get_feature_vector() for image in train_images]
+            test_data = [image.get_feature_vector() for image in test_images]
         else:
             train_data = extract_resized_images(train_images, feature_combiner)
             test_data = extract_resized_images(test_images, feature_combiner)
@@ -188,7 +188,7 @@ def cross_grid_search(directories, trainer, features, parameters, augment=True, 
         print('Augmented train images to %d samples' % len(images))
 
     feature_extraction(images, features, verbose=verbose)
-    train_data = [image.getFeatureVector() for image in images]
+    train_data = [image.get_feature_vector() for image in images]
     train_classes = [image.label for image in images]
     classes = list(set(train_classes))
     class_to_index = {key: index for index, key in enumerate(classes)}
