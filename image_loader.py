@@ -36,19 +36,27 @@ class LabelledImage(object):
 
     def isSet(self, feature):
         if feature.key() == "FeatureCombiner": return False
+        return self.isSetByName(feature.key())
 
-        return self.features.__contains__(feature.key()) and self.features[feature.key()] is not None
+    def isSetByName(self, name):
+        return self.features.__contains__(name) and self.features[name] is not None
 
     def set(self, feature, value):
         if feature.key() == "FeatureCombiner": raise "cannot set value for combiner"
 
         if not self.isSet(feature):
-            self.features[feature.key()] = value
+            self.setByName(feature.key(), value)
+
+    def setByName(self, name, value):
+        self.features[name] = value
 
     def get(self, feature):
         if feature.key() == "FeatureCombiner": raise "cannot get value for combiner"
 
-        return self.features[feature.key()]
+        return self.getByName(feature.key())
+
+    def getByName(self, name):
+        return self.features[name]
 
     def getFeatureVector(self):
         return np.hstack([self.features[key] for key in sorted(self.features)])

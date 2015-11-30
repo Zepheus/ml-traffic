@@ -6,6 +6,7 @@ from preps import RotateTransform, SqueezeTransform, MirrorTransform, GaussianTr
 # Skimage
 from skimage.transform import resize
 from skimage import exposure, img_as_float
+from skimage.color import rgb2gray
 # OS
 from os.path import basename
 import os
@@ -24,10 +25,10 @@ def images_to_vectors(imgs, size, num_dimensions=3):
     vect = np.zeros((len(imgs), num_dimensions, size, size), dtype=np.float32)  # Assume 3 channels
     for idx, img in enumerate(imgs):
         if num_dimensions > 1:
-            rolled = np.rollaxis(img.image.astype(np.float32), 2, 0)
+            rolled = np.rollaxis(img.getByName('color').astype(np.float32), 2, 0)
             vect[idx, :, :, :] = rolled
         else:
-            vect[idx, 0, :, :] = img.image.astype(np.float32)
+            vect[idx, 0, :, :] = img.getByName('gray').astype(np.float32)
     return vect
 
 
@@ -35,11 +36,14 @@ def load_images(directories, is_train=False, permute=True):
     return load(directories, is_train, permute)
 
 
-def postprocess(imgs, size, normalize=False):
-    # Mass-resize them and convert to grayscale
+def postprocess(imgs, size, grayscale=False, normalize=False):
     print("Postprocessing images and resize (at %d)" % size)
     for img in imgs:
-        # preprocess using histogram equalization
+
+        # Continue if already calculated
+        if img.isSetByName('gray' if grayscale else 'color'):
+            continue
+
         floatimg = img_as_float(img.image)
         dimensions = len(floatimg.shape)
         if normalize:
@@ -49,8 +53,11 @@ def postprocess(imgs, size, normalize=False):
                 floatimg[:, :, 2] = exposure.equalize_hist(floatimg[:, :, 2])
             else:  # Grayscale
                 floatimg[:, :] = exposure.equalize_hist(floatimg)
-        img.image = resize(floatimg, (size, size))  # expect to return floats
 
+        if grayscale:
+            floatimg = rgb2gray(floatimg)
+        floatimg = resize(floatimg, (size, size))
+        img.setByName('gray' if grayscale else 'color', floatimg)  # expect to return floats
 
 def augmentation(images):
     transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
@@ -188,9 +195,12 @@ def build_network(network, input_var, target_var, learning_rate=0.005, momentum=
     return train_fn, val_fn, predict_fn
 
 
-def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, input_size=45, show_validation=True):
+def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show_validation=True):
         print("Starting training...")
 
+        training_loss = 0
+        val_loss = 0
+        validation_acc = 0
         for epoch in range(num_epochs):
             # In each epoch, we do a full pass over the training data:
             train_err = 0
@@ -224,7 +234,13 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, inpu
                 validation_acc = val_acc / val_batches * 100
                 print("  validation loss:\t\t{:.6f}".format(val_loss))
                 print("  validation accuracy:\t\t{:.2f} %".format(validation_acc))
+
         print('Finished %d iterations' % num_epochs)
+
+        if show_validation:
+            return training_loss, val_loss, validation_acc
+        else:
+            return training_loss
 
 
 def predict(predict_fn, x_test):
@@ -244,6 +260,56 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
     file.close()
 
 
+def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, augment=True):
+    train_images = load_images(train_dir, is_train=True, permute=False)
+    training_labels = list([img.label for img in train_images])
+    classes_set = list(sorted(set(training_labels)))
+    class_to_index = {key: index for index, key in enumerate(classes_set)}
+
+    # Create validation and training set
+    val_losses = []
+    train_losses = []
+    val_accs = []
+
+    for trainset, valset in split_special(train_images, num_folds, False):
+        print('Evaluating fold...')
+        if augment:
+            trainset = augmentation(trainset)
+            print("Augmented to %d images" % len(trainset))
+
+        # Postprocess images
+        postprocess(trainset, size=input_size)
+        postprocess(valset, size=input_size)
+
+        x_train = images_to_vectors(trainset, input_size)
+        x_val = images_to_vectors(valset, input_size)
+
+        y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
+        y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
+        input_var = T.tensor4('inputs')
+        target_var = T.ivector('targets')
+
+        neural_network = network(input_size, input_var)
+        train_fn, val_fn, predict_fn = build_network(neural_network, input_var, target_var)
+        training_loss, val_loss, val_acc = train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs)
+
+        val_losses.append(val_loss)
+        train_losses.append(training_loss)
+        val_accs.append(val_acc)
+
+    # Process metrics
+    mean_val_loss = np.mean(val_losses)
+    mean_train_loss = np.mean(train_losses)
+    mean_accuracy = np.mean(val_accs)
+    std_val_loss = np.std(val_losses)
+    std_val_acc = np.std(val_accs)
+    std_train_loss = np.std(train_losses)
+
+    print('Mean validation loss: %f (std: %f)' % (mean_val_loss, std_val_loss))
+    print('Mean training loss: %f (std: %f)' % (mean_train_loss, std_train_loss))
+    print('Mean training accuracy: %f (std %f)' % (mean_accuracy, std_val_acc))
+
+
 def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, flipover=250):
 
     print('Loading dataset')
@@ -254,16 +320,17 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, flipov
     train_fn, val_fn, predict_fn = build_network(network, input_var, target_var)
 
     if flipover > 0:
-        train(train_fn, val_fn, x_train, y_train, x_val, y_val, flipover, input_size)
+        train(train_fn, val_fn, x_train, y_train, x_val, y_val, flipover)
         print("Flipping over dataset to full trainset")
         train_images = load_images(train_dir, is_train=True, permute=False)
         train_images = augmentation(train_images)
         postprocess(train_images, input_size)
         x_train = images_to_vectors(train_images, input_size)
         y_train = np.concatenate(np.array([[id_to_class.index(img.label) for img in train_images]], dtype=np.uint8))
-        train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs - flipover, input_size)
+        if num_epochs - flipover > 0:
+            train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs - flipover)
     else:
-        train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs, input_size)
+        train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs)
 
     # Prediction
     print("Starting evaluation of testset")
@@ -275,4 +342,5 @@ def train_and_predict(train_dir, test_dir, num_epochs=500, input_size=45, flipov
     write_csv(test_images, predictions, id_to_class)
     print("Finished")
 
-train_and_predict(['data/train'], ['data/test'], num_epochs=40, input_size=45, flipover=20)
+#train_and_predict(['data/train'], ['data/test'], num_epochs=40, input_size=45, flipover=20)
+cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=2, augment=True)
