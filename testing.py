@@ -1,16 +1,12 @@
-from cross_validation import cross_validate
 from image_loader import load
 from learn import LogisticRegressionTrainer
 from features import HsvFeature
-from visualize import BoxPlot
-import numpy as np
-import os
 
 
 def test_feature(directories, trainers):
     images = load(directories, True, permute=False)
     for image in images:
-        if '00127_12714' in image.filename:
+        if '01005_05517' in image.filename:
             feature = HsvFeature()
             feature.process(image)
 
@@ -31,4 +27,4 @@ def test_feature(directories, trainers):
 #     # BoxPlot().show(["circles", "non_circles"], [circle_features, non_circle_features])
 
 
-test_feature(["data/train/diamonds/B9"], LogisticRegressionTrainer(181.0))
+test_feature(["data/train/blue_circles/D1a"], LogisticRegressionTrainer(181.0))
