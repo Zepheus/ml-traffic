@@ -2,8 +2,10 @@ from visualize import AbstractVisual
 import matplotlib.pyplot as plt
 
 
+# This class allows visualizing an image
 class ImagePlot(AbstractVisual):
 
+	# the labels parameter represents how the image should be displayed
     def _prep(self,labels,data):
         im = data
 

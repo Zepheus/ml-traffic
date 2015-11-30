@@ -3,8 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
+
+# This class to create an scatter plot of the given data
+# 2- or 3 dimenional data is allowed
 class ScatterPlot(AbstractVisual):
 
+	# The parameters represent the axis labels
     def __init__(self,xlabel='x',ylabel='y',zlabel=''):
         self.xlabel = xlabel
         self.ylabel = ylabel
@@ -13,7 +17,7 @@ class ScatterPlot(AbstractVisual):
     def _prep(self,labels,data):
         self.fig = plt.figure(1, figsize=(9, 6))
 
-        if (self.zlabel):
+        if (self.zlabel):  # if 3d 
             ax = self.fig.add_subplot(111,projection='3d')
         else:
             ax = self.fig.add_subplot(111)

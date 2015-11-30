@@ -2,6 +2,8 @@ from abc import ABCMeta, abstractmethod
 import matplotlib.pyplot as plt
 
 
+# This class represents an abstract way of visualizing data
+# It provides a method for viewing and saving the resulting image.
 class AbstractVisual(metaclass=ABCMeta):
     @abstractmethod
     def _prep(self, labels, data):

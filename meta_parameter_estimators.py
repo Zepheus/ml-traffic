@@ -73,3 +73,8 @@ def estimateMetas(directories, trainer):
 
     for estimator in meta_estimators:
         estimator(directories, trainer)
+
+def createLogisticTrainer(x):
+    return lambda: LogisticRegressionTrainer(regularization=x)
+
+estimateMetas(['data/train'],createLogisticTrainer(181))
