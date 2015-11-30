@@ -38,17 +38,18 @@ def load_images(directories, is_train=False, permute=True):
 
 def postprocess(imgs, size, grayscale=False):
     print("Postprocessing images and resize (at %d)" % size)
+    keyname = ('gray_%d' if grayscale else 'color_%d') % size
     for img in imgs:
 
         # Continue if already calculated
-        if img.isSetByName('gray' if grayscale else 'color'):
+        if img.isSetByName(keyname):
             continue
 
         floatimg = img_as_float(img.image)
         floatimg = resize(floatimg, (size, size))
         if grayscale:
             floatimg = rgb2gray(floatimg)
-        img.setByName('gray' if grayscale else 'color', floatimg)  # expect to return floats
+        img.setByName(keyname, floatimg)  # expect to return floats
 
 
 def augmentation(images):
@@ -89,6 +90,28 @@ def build_rgb_cnn(input_size, input_var=None):
 
     network = lasagne.layers.DenseLayer(
         network,
+        num_units=81,
+        nonlinearity=lasagne.nonlinearities.softmax)
+
+    return network
+
+def build_rgb_cnn_2(input_size, input_var=None):
+    network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
+
+    network = lasagne.layers.Conv2DLayer(
+        network, num_filters=100, filter_size=(10, 10),
+        nonlinearity=lasagne.nonlinearities.rectify,
+        W=lasagne.init.GlorotUniform())
+
+    network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+
+    network = lasagne.layers.DenseLayer(
+        lasagne.layers.dropout(network, p=.5),
+        num_units=100,
+        nonlinearity=lasagne.nonlinearities.rectify)
+
+    network = lasagne.layers.DenseLayer(
+        lasagne.layers.dropout(network, p=.5),
         num_units=81,
         nonlinearity=lasagne.nonlinearities.softmax)
 
@@ -371,9 +394,10 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
     print('Finished.')
 
 
-def train_and_predict(train_dir, test_dir,
+def train_ensemble(train_dir, test_dir,
                       networks=[build_rgb_cnn], weights=[1.0], epochs=[400], input_sizes=[45],
                       learning_rates=[0.005], grays = [False], augment=True):
+    assert(sum(weights) - 1 <= 0.001)
 
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
@@ -444,14 +468,14 @@ def train_and_predict(train_dir, test_dir,
     write_csv(test_images, predictions, class_to_index)
     print("Finished")
 
-# train_and_predict(['data/train'],  ['data/test'],
-#     networks=[build_rgb_cnn],
-#     learning_rates=[0.005],
-#     grays=[False],
-#     input_sizes=[45],
-#     weights=[1.0],
-#     epochs=[220],
-#     augment=True)
+train_ensemble(['data/train'],  ['data/test'],
+    networks=[build_rgb_cnn, build_rgb_cnn_2],
+    learning_rates=[0.005, 0.005],
+    grays=[False, False],
+    input_sizes=[45, 48],
+    weights=[0.7, 0.3],
+    epochs=[200, 200],
+    augment=True)
 
-cross_validate(['data/train'], build_rgb_cnn, num_epochs=200, input_size=45, num_folds=2, augment=True)
+#cross_validate(['data/train'], build_rgb_cnn_2, num_epochs=200, input_size=48, num_folds=2, augment=True)
 #cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
