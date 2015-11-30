@@ -228,7 +228,7 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
     file.close()
 
 
-def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, augment=True):
+def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, grayscale=False, augment=True):
     print('Cross-validation using %d folds' % num_folds)
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
@@ -247,8 +247,8 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, augm
             print("Augmented to %d images" % len(trainset))
 
         # Postprocess images
-        postprocess(trainset, size=input_size)
-        postprocess(valset, size=input_size)
+        postprocess(trainset, size=input_size, grayscale=grayscale)
+        postprocess(valset, size=input_size, grayscale=grayscale)
 
         x_train = images_to_vectors(trainset, input_size)
         x_val = images_to_vectors(valset, input_size)
@@ -280,7 +280,8 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, augm
 
 
 def train_and_predict(train_dir, test_dir,
-                      networks=[build_rgb_cnn], weights=[1], epochs=[400], flipovers=[250], input_sizes=[45], augment=True):
+                      networks=[build_rgb_cnn], weights=[1], epochs=[400], flipovers=[250], input_sizes=[45],
+                      learning_rates=[0.005], grays = [False, True], augment=True):
 
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
@@ -303,6 +304,10 @@ def train_and_predict(train_dir, test_dir,
 
         x_train = images_to_vectors(trainset, input_size)
         x_val = images_to_vectors(valset, input_size)
+
+        # Wipe features to preserve memory
+        for img in train_images:
+            img.clearFeatures()
 
         y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
         y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
@@ -341,8 +346,8 @@ def train_and_predict(train_dir, test_dir,
     write_csv(test_images, predictions, class_to_index)
     print("Finished")
 
-train_and_predict(['data/train'],  ['data/test'],
-                  networks=[build_rgb_cnn], weights=[1], epochs=[30], flipovers=[15], input_sizes=[45], augment=True)
+#train_and_predict(['data/train'],  ['data/test'],
+#                  networks=[build_rgb_cnn], weights=[1], epochs=[30], flipovers=[15], input_sizes=[45], augment=True)
 
 #train_and_predict(['data/train'], ['data/test'], num_epochs=40, input_size=45, flipover=20)
-#cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=3, augment=True)
+cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=3, augment=True)

@@ -47,6 +47,9 @@ class LabelledImage(object):
         if not self.isSet(feature):
             self.setByName(feature.key(), value)
 
+    def clearFeatures(self):
+        self.features.clear()
+
     def setByName(self, name, value):
         self.features[name] = value
 
