@@ -1,9 +1,6 @@
-from cross_validation import cross_validate
 from image_loader import load
 from learn import LogisticRegressionTrainer
-from features import DetectCircle, HogFeature
-from visualize import BoxPlot
-import numpy as np
+from features import DetectCircle
 
 
 def train_folds(directories, trainers):

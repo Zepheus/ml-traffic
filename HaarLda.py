@@ -25,7 +25,7 @@ def lda(directories):
     i = 0
 
     filtered = []
-    for size in f.haarSizes:
+    for size in f.haar_sizes:
         for x in range(w - size):
             for y in range(h - size):
                 for haar_type in range(len(f.haars)):

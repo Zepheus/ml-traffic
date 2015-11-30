@@ -53,7 +53,7 @@ def estimateDetectSymmetryLargeBlockParameters(directories, trainer):
              "large_size", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3)), RegionRatio(), DetectCircle()])
 
 def estimateDetectSymmetrySmallBlockParameters(directories, trainer):
-    estimateMeta(directories, trainer, [(v, DetectSymmetry(size=96, blocksize=v)) for v in range(2, 32, 5)],
+    estimateMeta(directories, trainer, [(v, DetectSymmetry(size=96, block_size=v)) for v in range(2, 32, 5)],
              "small_size", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3)), RegionRatio(), DetectCircle()])
 
 def estimateColorCenterParameters(directories, trainer):
