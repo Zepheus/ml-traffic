@@ -10,6 +10,7 @@ from skimage.color import rgb2gray
 
 # OS
 import time
+import gc
 
 # Scientific
 import numpy as np
@@ -336,6 +337,7 @@ def train_and_predict(train_dir, test_dir,
         postprocess(trainset, size=input_size, grayscale=gray)
         postprocess(valset, size=input_size, grayscale=gray)
 
+        print('Extracting feature vectors (dimensions: %d)' % (1 if gray else 3))
         x_train = images_to_vectors(trainset, input_size, num_dimensions=1 if gray else 3)
         x_val = images_to_vectors(valset, input_size, num_dimensions=1 if gray else 3)
 
@@ -343,6 +345,7 @@ def train_and_predict(train_dir, test_dir,
         for img in train_images:
             img.disposeImage()  # Dispose image from memory temporarely
             img.clearFeatures()
+        gc.collect()
 
         y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
         y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
@@ -352,15 +355,22 @@ def train_and_predict(train_dir, test_dir,
         convnet = network(input_size, input_var)
         train_fn, val_fn, predict_fn = build_network(convnet, input_var, target_var, learning_rate=learning_rate)
 
+        print('Initiating network...')
         if flipover > 0:
             train(train_fn, val_fn, x_train, y_train, x_val, y_val, flipover)
-            print("Flipping over dataset to full trainset")
-            train_images = load_images(train_dir, is_train=True, permute=False)
-            train_images = augmentation(train_images)
-            postprocess(train_images, input_size)
-            x_train = images_to_vectors(train_images, input_size)
-            y_train = np.concatenate(np.array([[class_to_index[img.label] for img in train_images]], dtype=np.uint8))
             if num_epochs - flipover > 0:
+                print("Flipping over dataset to full trainset")
+                tmp_train_images = load_images(train_dir, is_train=True, permute=False)
+                tmp_train_images = augmentation(tmp_train_images)
+                postprocess(tmp_train_images, input_size)
+                x_train = images_to_vectors(tmp_train_images, input_size)
+
+                for img in tmp_train_images:
+                    img.disposeImage()  # Dispose image from memory temporarely
+                    img.clearFeatures()
+                    gc.collect()
+                    
+                y_train = np.concatenate(np.array([[class_to_index[img.label] for img in tmp_train_images]], dtype=np.uint8))
                 train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs - flipover, show_validation=False)
         else:
             train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs)
@@ -379,26 +389,28 @@ def train_and_predict(train_dir, test_dir,
             img.disposeImage()
             img.clearFeatures()
 
+        gc.collect()  # Force garbage collect
+
     # Now take a weighted sample of all nets
     predictions = np.zeros((len(test_images), len(class_to_index)))
     for w, pred in zip(weights, preds):
-        predictions = predictions + w * pred
+        predictions = predictions + (w * pred)
 
     # Predictions
     write_csv(test_images, predictions, class_to_index)
     print("Finished")
 
 train_and_predict(['data/train'],  ['data/test'],
-                  networks=[build_rgb_cnn, build_grayscale_cnn],
-                  learning_rates=[0.005, 0.005],
-                  grays=[False, True],
-                  weights=[0.6, 0.4],
-                  epochs=[20, 20],
-                  flipovers=[10, 10],
-                  #epochs=[400, 300],
-                  #flipovers=[200, 70],
-                  input_sizes=[45, 45],
-                  augment=True)
+    networks=[build_grayscale_cnn, build_rgb_cnn],
+    learning_rates=[0.005, 0.005],
+    grays=[True, False],
+    weights=[0.4, 0.6],
+    epochs=[20, 20],
+    flipovers=[10, 10],
+    #epochs=[400, 300],
+    #flipovers=[200, 70],
+    input_sizes=[45, 45],
+    augment=True)
 
 #cross_validate(['data/train'], build_rgb_cnn, num_epochs=200, input_size=45, num_folds=2, augment=True)
 #cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
