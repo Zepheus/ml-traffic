@@ -385,8 +385,7 @@ train_and_predict(['data/train'],  ['data/test'],
     grays=[True, False],
     input_sizes=[45, 45],
     weights=[0.4, 0.6],
-    epochs=[20, 20],
-    #epochs=[400, 300],
+    epochs=[300, 350],
     augment=True)
 
 #cross_validate(['data/train'], build_rgb_cnn, num_epochs=200, input_size=45, num_folds=2, augment=True)
