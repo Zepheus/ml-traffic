@@ -1,7 +1,7 @@
 # Own
 from image_loader import load, augment_images
 from cross_validation import split_special
-from preps import RotateTransform, SqueezeTransform, MirrorTransform, GaussianTransform, CropTransform
+from preps import RotateTransform, SqueezeTransform, MirrorTransform, PerspectiveTransform
 
 # Skimage
 from skimage.transform import resize
@@ -59,10 +59,13 @@ def postprocess(imgs, size, grayscale=False, normalize=False):
         floatimg = resize(floatimg, (size, size))
         img.setByName('gray' if grayscale else 'color', floatimg)  # expect to return floats
 
+
 def augmentation(images):
     transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
-                     [SqueezeTransform(), MirrorTransform()] # , GaussianTransform(sigma=3, multichannel=True)
+                     [SqueezeTransform(), MirrorTransform(),
+                      PerspectiveTransform(degrees=25, side='left'), PerspectiveTransform(degrees=25, side='right')] # , GaussianTransform(sigma=3, multichannel=True)
     return augment_images(images, transforms)
+
 
 def build_rgb_cnn(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
@@ -100,6 +103,45 @@ def build_rgb_cnn(input_size, input_var=None):
         nonlinearity=lasagne.nonlinearities.softmax)
 
     return network
+
+
+def build_grayscale_cnn(input_size, input_var=None):
+    network = lasagne.layers.InputLayer(shape=(None, 1, input_size, input_size), input_var=input_var)
+
+    network = lasagne.layers.Conv2DLayer(
+        network, num_filters=32, filter_size=(3, 3),
+        nonlinearity=lasagne.nonlinearities.rectify,
+        W=lasagne.init.GlorotUniform())
+    network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+
+    network = lasagne.layers.Conv2DLayer(
+        network, num_filters=64, filter_size=(2, 2),
+        nonlinearity=lasagne.nonlinearities.rectify)
+    network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+
+    network = lasagne.layers.Conv2DLayer(
+        network, num_filters=128, filter_size=(2, 2),
+        nonlinearity=lasagne.nonlinearities.rectify)
+    network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+
+    network = lasagne.layers.DenseLayer(
+        lasagne.layers.dropout(network, p=0.5),
+        num_units=256,
+        nonlinearity=lasagne.nonlinearities.rectify)
+    network = lasagne.layers.FeaturePoolLayer(network, pool_size=2)
+
+    network = lasagne.layers.DenseLayer(
+        lasagne.layers.dropout(network, p=0.5),
+        num_units=100,
+        nonlinearity=lasagne.nonlinearities.rectify)
+
+    network = lasagne.layers.DenseLayer(
+        network,
+        num_units=81,
+        nonlinearity=lasagne.nonlinearities.softmax)
+
+    return network
+
 
 
 # ############################# Batch iterator ###############################
@@ -240,7 +282,7 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, gray
     train_losses = []
     val_accs = []
 
-    for trainset, valset in split_special(train_images, num_folds, False):
+    for trainset, valset in split_special(train_images, num_folds, num_folds == 2):
         print('Evaluating fold...')
         if augment:
             trainset = augmentation(trainset)
@@ -250,8 +292,8 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, gray
         postprocess(trainset, size=input_size, grayscale=grayscale)
         postprocess(valset, size=input_size, grayscale=grayscale)
 
-        x_train = images_to_vectors(trainset, input_size)
-        x_val = images_to_vectors(valset, input_size)
+        x_train = images_to_vectors(trainset, input_size, num_dimensions=1 if grayscale else 3)
+        x_val = images_to_vectors(valset, input_size, num_dimensions=1 if grayscale else 3)
 
         y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
         y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
@@ -349,5 +391,5 @@ def train_and_predict(train_dir, test_dir,
 #train_and_predict(['data/train'],  ['data/test'],
 #                  networks=[build_rgb_cnn], weights=[1], epochs=[30], flipovers=[15], input_sizes=[45], augment=True)
 
-#train_and_predict(['data/train'], ['data/test'], num_epochs=40, input_size=45, flipover=20)
-cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=3, augment=True)
+#cross_validate(['data/train'], build_rgb_cnn, num_epochs=3, input_size=45, num_folds=3, augment=True)
+cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
