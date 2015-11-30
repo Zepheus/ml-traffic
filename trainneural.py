@@ -313,7 +313,7 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, gray
 
 
 def train_and_predict(train_dir, test_dir,
-                      networks=[build_rgb_cnn], weights=[1.0], epochs=[400], flipovers=[250], input_sizes=[45],
+                      networks=[build_rgb_cnn], weights=[1.0], epochs=[400], input_sizes=[45],
                       learning_rates=[0.005], grays = [False], augment=True):
 
     train_images = load_images(train_dir, is_train=True, permute=False)
@@ -325,60 +325,39 @@ def train_and_predict(train_dir, test_dir,
     preds = []
 
     print('Loading training dataset')
-    (trainset, valset) = split_special(train_images, 2, True)[0]  # Warmup using one training fold
     if augment:
         print('Augmenting images...')
-        trainset = augmentation(trainset)
-        print("Augmented to %d images" % len(trainset))
+        train_images = augmentation(train_images)
+        print("Augmented to %d images" % len(train_images))
 
-    for input_size, network, num_epochs, flipover, gray, learning_rate in zip(input_sizes, networks, epochs,
-                                                         flipovers, grays, learning_rates):
+    for input_size, network, num_epochs, gray, learning_rate in zip(input_sizes, networks, epochs,
+                                                                              grays, learning_rates):
         print('Start training next network')
-        postprocess(trainset, size=input_size, grayscale=gray)
-        postprocess(valset, size=input_size, grayscale=gray)
+        postprocess(train_images, size=input_size, grayscale=gray)
 
         print('Extracting feature vectors (dimensions: %d)' % (1 if gray else 3))
-        x_train = images_to_vectors(trainset, input_size, num_dimensions=1 if gray else 3)
-        x_val = images_to_vectors(valset, input_size, num_dimensions=1 if gray else 3)
+        x_train = images_to_vectors(train_images, input_size, num_dimensions=1 if gray else 3)
 
         # Wipe features to preserve memory
         for img in train_images:
-            img.disposeImage()  # Dispose image from memory temporarely
             img.clearFeatures()
         gc.collect()
 
-        y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
-        y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
+        y_train = np.concatenate(np.array([[class_to_index[img.label] for img in train_images]], dtype=np.uint8))
 
         input_var = T.tensor4('inputs')
         target_var = T.ivector('targets')
         convnet = network(input_size, input_var)
         train_fn, val_fn, predict_fn = build_network(convnet, input_var, target_var, learning_rate=learning_rate)
 
-        print('Initiating network...')
-        if flipover > 0:
-            train(train_fn, val_fn, x_train, y_train, x_val, y_val, flipover)
-            if num_epochs - flipover > 0:
-                print("Flipping over dataset to full trainset")
-                tmp_train_images = load_images(train_dir, is_train=True, permute=False)
-                tmp_train_images = augmentation(tmp_train_images)
-                postprocess(tmp_train_images, input_size)
-                x_train = images_to_vectors(tmp_train_images, input_size)
-
-                for img in tmp_train_images:
-                    img.disposeImage()  # Dispose image from memory temporarely
-                    img.clearFeatures()
-                    gc.collect()
-                    
-                y_train = np.concatenate(np.array([[class_to_index[img.label] for img in tmp_train_images]], dtype=np.uint8))
-                train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs - flipover, show_validation=False)
-        else:
-            train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs)
+        print('Training network...')
+        train(train_fn, val_fn, x_train, y_train, None, None, num_epochs, show_validation=False)
 
         # Now we predict the training set
         if test_images is None:
             print("Loading test images")
             test_images = sorted(load_images(test_dir, is_train=False, permute=False), key=lambda x: x.identifier)
+
         postprocess(test_images, size=input_size, grayscale=gray)
         x_test = images_to_vectors(test_images, input_size, num_dimensions=1 if gray else 3)
         preds.append(predict(predict_fn, x_test))
@@ -404,12 +383,10 @@ train_and_predict(['data/train'],  ['data/test'],
     networks=[build_grayscale_cnn, build_rgb_cnn],
     learning_rates=[0.005, 0.005],
     grays=[True, False],
+    input_sizes=[45, 45],
     weights=[0.4, 0.6],
     epochs=[20, 20],
-    flipovers=[10, 10],
     #epochs=[400, 300],
-    #flipovers=[200, 70],
-    input_sizes=[45, 45],
     augment=True)
 
 #cross_validate(['data/train'], build_rgb_cnn, num_epochs=200, input_size=45, num_folds=2, augment=True)
