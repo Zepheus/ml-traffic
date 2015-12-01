@@ -14,12 +14,12 @@ class PerspectiveTransform(AbstractPrep):
         self.side = side
 
     def process(self, im):
-		# if side is right flip so it becomes right
+        # if side is right flip so it becomes right
         if self.side != 'left':
             im = np.fliplr(im)
 
-		# slope of the perspective
-		dir = tan(radians(self.degrees))
+        # slope of the perspective
+        dir = tan(radians(self.degrees))
         (h, w, _) = im.shape
 
         matrixTrans = np.array([[1, 0, 0],
