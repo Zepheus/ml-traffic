@@ -28,14 +28,14 @@ def train_and_predict(trainer_function, feature_combiner, train_directories=['da
 
     # Free images
     for img in train_images:
-        img.disposeImage()
+        img.dispose_image()
 
     for img in test_images:
-        img.disposeImage()
+        img.dispose_image()
     print('Freed image memory')
 
     # Feature transform
-    train_data = [image.getFeatureVector() for image in train_images]
+    train_data = [image.get_feature_vector() for image in train_images]
     # Train model
     train_classes = [image.label for image in train_images]
     trainer.train(train_data, train_classes)
@@ -45,7 +45,7 @@ def train_and_predict(trainer_function, feature_combiner, train_directories=['da
     file = open('result.csv', 'w')
     file.write('Id,%s\n' % str.join(',', trainer.classes))
     for image in test_images:
-        test_data = image.getFeatureVector()
+        test_data = image.get_feature_vector()
         predictions = trainer.predict_proba(test_data)
         identifier = int(os.path.splitext(basename(image.filename))[0])
         file.write('%d,%s\n' % (identifier, str.join(',', [('%.13f' % p) for p in predictions[0]])))

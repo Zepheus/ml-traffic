@@ -22,13 +22,13 @@ class PerspectiveTransform(AbstractPrep):
         dir = tan(radians(self.degrees))
         (h, w, _) = im.shape
 
-        matrixTrans = np.array([[1, 0, 0],
+        matrix_trans = np.array([[1, 0, 0],
                                 [-dir/2, 1, dir * h / 2],
                                 [-dir/w, 0, 1 + dir]])
 
-        trans = ProjectiveTransform(matrixTrans)
-        imgTrans = warp(im, trans)
+        trans = ProjectiveTransform(matrix_trans)
+        img_trans = warp(im, trans)
         if self.side != 'left':
-            imgTrans = np.fliplr(imgTrans)
-        return imgTrans
+            img_trans = np.fliplr(img_trans)
+        return img_trans
 

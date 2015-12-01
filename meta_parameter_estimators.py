@@ -1,16 +1,17 @@
 from features import *
 from image_loader import *
 from cross_validation import cross_validate
+from learn import LogisticRegressionTrainer
 from visualize import ScatterPlot
 import inspect
 
 
-def estimateMeta(directories, trainer, rangeValues, label, staticFeatures):
+def estimate_meta(directories, trainer, range_values, label, static_features):
     images = load(directories, True, permute=True)
     results = []
-    for v, feature in rangeValues:
+    for v, feature in range_values:
         print("Optimizing %s: %f" % (feature.key(), v))
-        feature_calculator = [feature] + staticFeatures
+        feature_calculator = [feature] + static_features
         error_rate = cross_validate(images, feature_calculator, trainer, k=10, verbose=False)
         print("Error rate: %f" % error_rate)
         results.append([v, error_rate])
@@ -23,50 +24,49 @@ def estimateMeta(directories, trainer, rangeValues, label, staticFeatures):
     plot.save([label], [results], "result_graphs/" + name)
 
 
-def estimateHogOrientationsParameters(directories, trainer):
-    estimateMeta(directories, trainer, [(ori, HogFeature(orientations=ori, pixels_per_cell=(8, 8), cells_per_block=(1, 1))) for ori in range(1, 15, 2)], "orientations",
-                 [HsvFeature(), DetectCircle(), DetectSymmetry(), RegionRatio()])
-
-def estimateHogResizeParameters(directories, trainer):
-    estimateMeta(directories, trainer, [(size, HogFeature(orientations=8, pixels_per_cell=(8, 8), cells_per_block=(1, 1), resize=size)) for size in range(32, 200, 16)], "size",
-             [HsvFeature(), DetectCircle(), DetectSymmetry(), RegionRatio()])
+def estimate_hog_orientations_parameters(directories, trainer):
+    estimate_meta(directories, trainer, [(ori, HogFeature(orientations=ori, pixels_per_cell=(8, 8), cells_per_block=(1, 1))) for ori in range(1, 15, 2)], "orientations",
+                  [HsvFeature(), DetectCircle(), DetectSymmetry(), RegionRatio()])
 
 
-def estimateHogPixelsPerCellParameters(directories, trainer):
-    estimateMeta(directories, trainer,
-                 [(v, HogFeature(orientations=5, pixels_per_cell=(v, v), cells_per_block=(1, 1))) for v in [2, 4, 8, 16, 32, 64, 96]],
+def estimate_hog_resize_parameters(directories, trainer):
+    estimate_meta(directories, trainer, [(size, HogFeature(orientations=8, pixels_per_cell=(8, 8), cells_per_block=(1, 1), resize=size)) for size in range(32, 200, 16)], "size",
+                  [HsvFeature(), DetectCircle(), DetectSymmetry(), RegionRatio()])
+
+
+def estimate_hog_pixels_per_cell_parameters(directories, trainer):
+    estimate_meta(directories, trainer,
+                  [(v, HogFeature(orientations=5, pixels_per_cell=(v, v), cells_per_block=(1, 1))) for v in [2, 4, 8, 16, 32, 64, 96]],
                  "pixels per cell", [HsvFeature(), DetectCircle(), DetectSymmetry(), RegionRatio()])
 
 
-def estimateHogCellsPerBlockParameters(directories, trainer):
-    estimateMeta(directories, trainer,
-                 [(v, HogFeature(cells_per_block=(v, v), orientations=5, pixels_per_cell=(8, 8))) for v in range(1, 10)], "cells per block",
-                 [HsvFeature(), DetectCircle(), DetectSymmetry(), RegionRatio()])
+def estimate_hog_cells_per_block_parameters(directories, trainer):
+    estimate_meta(directories, trainer,
+                  [(v, HogFeature(cells_per_block=(v, v), orientations=5, pixels_per_cell=(8, 8))) for v in range(1, 10)], "cells per block",
+                  [HsvFeature(), DetectCircle(), DetectSymmetry(), RegionRatio()])
 
 
-def estimateDetectCircleParameters(directories, trainer):
-    estimateMeta(directories, trainer, [(v, DetectCircle(sigma=v)) for v in np.arange(0.1, 5, 0.4)],
+def estimate_detect_circle_parameters(directories, trainer):
+    estimate_meta(directories, trainer, [(v, DetectCircle(sigma=v)) for v in np.arange(0.1, 5, 0.4)],
                  "sigma", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(1, 1)), DetectSymmetry(), RegionRatio()])
 
-def estimateDetectSymmetryLargeBlockParameters(directories, trainer):
-    estimateMeta(directories, trainer, [(v, DetectSymmetry(size=v)) for v in range(10, 96, 10)],
+
+def estimate_detect_symmetry_large_block_parameters(directories, trainer):
+    estimate_meta(directories, trainer, [(v, DetectSymmetry(size=v)) for v in range(10, 96, 10)],
              "large_size", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3)), RegionRatio(), DetectCircle()])
 
-def estimateDetectSymmetrySmallBlockParameters(directories, trainer):
-    estimateMeta(directories, trainer, [(v, DetectSymmetry(size=96, block_size=v)) for v in range(2, 32, 5)],
+
+def estimate_detect_symmetry_small_block_parameters(directories, trainer):
+    estimate_meta(directories, trainer, [(v, DetectSymmetry(size=96, block_size=v)) for v in range(2, 32, 5)],
              "small_size", [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3)), RegionRatio(), DetectCircle()])
 
-def estimateColorCenterParameters(directories, trainer):
-    estimateMeta(directories, trainer, [(v, ColorCenter(size=v)) for v in range(1, 20)], "scale size",
-                 [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(1, 1)), DetectSymmetry(), RegionRatio(), DetectCircle()])
 
-
-def estimateMetas(directories, trainer):
+def estimate_metas(directories, trainer):
     meta_estimators = [ #estimateHogResizeParameters,
                         #estimateHogOrientationsParameters,
                         #estimateHogCellsPerBlockParameters,
                         #estimateDetectCircleParameters,
-                        estimateDetectSymmetrySmallBlockParameters,
+                        estimate_detect_symmetry_small_block_parameters,
                         #estimateDetectSymmetryLargeBlockParameters,
                         #estimateHogPixelsPerCellParameters
                        ]
@@ -74,7 +74,8 @@ def estimateMetas(directories, trainer):
     for estimator in meta_estimators:
         estimator(directories, trainer)
 
-def createLogisticTrainer(x):
+
+def create_logistic_trainer(x):
     return lambda: LogisticRegressionTrainer(regularization=x)
 
-estimateMetas(['data/train'],createLogisticTrainer(181))
+estimate_metas(['data/train'], create_logistic_trainer(181))

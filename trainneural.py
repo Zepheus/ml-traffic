@@ -72,7 +72,7 @@ def load_train_dataset(train_dir, test_dir, train_image_size=48, augment=True):
     X_val = images_to_vectors(valset, train_image_size)
 
     for img in train_images:
-        img.disposeImage()
+        img.dispose_image()
 
     training_labels = list([img.label for img in train_images])
     classes_set = list(set(training_labels))
