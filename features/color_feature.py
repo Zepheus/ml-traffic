@@ -1,8 +1,7 @@
 from features import AbstractFeature
 from visualize import ImagePlot
-from preps import RatioTransform, ResizeTransform
 from skimage.measure import regionprops, label
-from skimage import exposure
+from skimage import exposure, transform
 import numpy as np
 
 
@@ -15,7 +14,8 @@ class ColorFeature(AbstractFeature):
         red_img = self.extract_color(yuv[:, :, 2])
         blue_img = self.extract_color(yuv[:, :, 1])
         black_img = self.extract_color(1 - yuv[:, :, 0])
-        ratio_img = RatioTransform().process(img.image)
+        size = min(img.image.shape[0], img.image.shape[1])
+        ratio_img = transform.resize(img.image, [size, size])
         # RED WHITE OVERLAP
         overlap = red_img * white_img
         if np.sum(overlap) > 0:
@@ -80,7 +80,8 @@ class ColorFeature(AbstractFeature):
         return RGB_avg / RGB_avg[0] # Normalize
 
     def extract_color(self, img, show=False):
-        ratio_img = RatioTransform().process(img)
+        size = min(img.shape[0], img.shape[1])
+        ratio_img = transform.resize(img, [size, size])
         width, height = ratio_img.shape
         # if exposure.is_low_contrast(ratio_img, fraction_threshold=0.45):
         ratio_img = exposure.equalize_hist(ratio_img)

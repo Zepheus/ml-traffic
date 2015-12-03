@@ -3,7 +3,8 @@ from cross_validation import *
 from prediction import *
 
 features = [ColorFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96),
-            HaarFeature(n_haars=5)]
+            HaarFeature(n_haars=5), DetectCircle(sigma=1.8)]
+
 
 def create_logistic_trainer(x):
     return lambda: LogisticRegressionTrainer(regularization=x)
