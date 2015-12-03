@@ -151,6 +151,6 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
 
 def trainFolds(directories, trainers):
     images = load(directories, True, permute=True)
-    combiner = [HsvFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96)]  # Feature selection
+    combiner = [ColorFeature(), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96)]  # Feature selection
     cross_validate(images, combiner, trainers, k=10, use_super_class=False,
                    number_of_pca_components=0, verboseFiles=True)  # use 10 folds, no pca

@@ -1,13 +1,13 @@
 from image_loader import load
 from learn import LogisticRegressionTrainer
-from features import HsvFeature
+from features import ColorFeature
 
 
 def test_feature(directories, trainers):
     images = load(directories, True, permute=False)
     for image in images:
         if '01005_05517' in image.filename:
-            feature = HsvFeature()
+            feature = ColorFeature()
             feature.process(image)
 
 #     circles = [i for i in images if i.label == "D10"]

@@ -6,7 +6,7 @@ from skimage import exposure
 import numpy as np
 
 
-class HsvFeature(AbstractFeature):
+class ColorFeature(AbstractFeature):
     def process(self, img):
         # Extract blue regions
         rgb2yuv = np.array([[0.299, 0.587, 0.114], [-0.14713, -0.28886, 0.436], [0.615, -0.51499, -0.10001]])
