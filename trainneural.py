@@ -247,7 +247,7 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show
             train_batches = 0
             start_time = time.time()
 
-            for batch in iterate_minibatches(X_train, y_train, 510, shuffle=True):
+            for batch in iterate_minibatches(X_train, y_train, 500, shuffle=True):
                 inputs, targets = batch
                 train_err += train_fn(inputs, targets)
                 train_batches += 1
@@ -257,7 +257,7 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show
                 val_err = 0
                 val_acc = 0
                 val_batches = 0
-                for batch in iterate_minibatches(X_val, y_val, 510, shuffle=False):
+                for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
                     inputs, targets = batch
                     err, acc = val_fn(inputs, targets)
                     val_err += err
@@ -293,7 +293,9 @@ def predict(predict_fn, x_test):
 
 
 # Dump probabilities to CSV
-def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
+def write_csv(test_images, predictions, id_to_class, filename='result.csv', combined=False):
+    assert(isinstance(test_images, list)) # do NOT pass a dictionary here
+
     file = open(filename, 'w')
     file.write('Id,%s\n' % str.join(',', id_to_class))
     for idx, img in enumerate(test_images):
@@ -301,7 +303,11 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
         thesum = np.sum(probs)  # Check if total sum of the array is 1, disregarding some floating point errors
         if abs(thesum - 1.0) > 0.01:
             print('Warning: Incorrect probabilities for %d' % img.identifier)
-        file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % (p if p < 1.0 else 1.0)) for p in probs])))  # Take care of floating point rounding errors
+        if combined:
+            # Take care of floating point rounding errors
+            file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % (p if p < 1.0 else 1.0)) for p in probs])))
+        else:
+            file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % p) for p in probs])))
 
     file.close()
 
@@ -424,7 +430,7 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
     x_test = images_to_vectors(test_images, input_size, num_dimensions=1 if gray else 3)
     predictions = predict(predict_fn, x_test)
     print('Writing to CSV...')
-    write_csv(test_images, predictions, class_to_index, filename='result_warmup.csv')
+    write_csv(test_images, predictions, classes_set, filename='result_warmup.csv')
     print('Finished.')
 
 
@@ -502,7 +508,7 @@ def train_ensemble(train_dir, test_dir,
         predictions = preds[0]
 
     # Predictions
-    write_csv(test_images, predictions, class_to_index)
+    write_csv(test_images, predictions, classes_set, combined=len(preds) > 1)
     print("Finished")
 
 train_ensemble(['data/train'],  ['data/test'],
@@ -511,8 +517,7 @@ train_ensemble(['data/train'],  ['data/test'],
     grays=[False, False],
     input_sizes=[45, 48],
     weights=[0.8, 0.2],
-    epochs=[5, 5],
-    #epochs=[230, 200],
+    epochs=[230, 200],
     augment=True)
 
 #train_single_with_warmup(['data/train'],  ['data/test'],
