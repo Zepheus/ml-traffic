@@ -60,14 +60,11 @@ class HsvFeature(AbstractFeature):
         overlap = black_img * white_img
         if np.sum(overlap) > 0:
             RGB_avg = self.relative_proportions(overlap, ratio_img)
-            if (RGB_avg[0] + RGB_avg[1] + RGB_avg[3]) >= 0.5 * 3:
+            if (RGB_avg[0] + RGB_avg[1] + RGB_avg[2]) >= 0.5 * 3:
                 white_img -= overlap
             else:
                 black_img -= overlap
-        return np.concatenate((np.ravel(ResizeTransform(10).process(red_img) > 0.5),
-                               np.ravel(ResizeTransform(10).process(blue_img) > 0.5),
-                               np.ravel(ResizeTransform(10).process(black_img) > 0.5),
-                               np.ravel(ResizeTransform(10).process(white_img) > 0.5)))
+        return [np.mean(red_img), np.mean(blue_img), np.mean(black_img), np.mean(white_img)]
 
     def rescale_values(self, img):
         img[:, :, 1] = (img[:, :, 1] + 0.436)/(0.436 * 2)
