@@ -6,7 +6,7 @@ from skimage import transform
 
 # own packages
 from image_loader import *
-
+from features import *
 
 def split_kfold(images, k):
     kf = KFold(len(images), n_folds=k)
@@ -147,3 +147,11 @@ def cross_validate(images, feature_combiner, trainer_function, k=1, use_super_cl
                 trainername = str(trainer())
                 print('mean error_ratio %f (std: %f) for %s' % (mean_errors[idx], std_errrors[idx], trainername))
         return mean_errors
+
+
+def trainFolds(directories, trainers):
+    images = load(directories, True, permute=True)
+    combiner = [HsvFeature(),  DetectCircle(sigma=1.8), HogFeature(orientations=5, pixels_per_cell=(8, 8), cells_per_block=(3, 3), resize=96),
+                DetectSymmetry(blocksize=3, size=96), RegionRatio()]  # Feature selection
+    cross_validate(images, combiner, trainers, k=10, use_super_class=False,
+                   number_of_pca_components=0, verboseFiles=True)  # use 10 folds, no pca

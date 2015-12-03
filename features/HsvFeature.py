@@ -1,10 +1,9 @@
 from features import AbstractFeature
+from visualize import ImagePlot
 from preps import RatioTransform, ResizeTransform
 from skimage.measure import regionprops, label
 from skimage import exposure
 import numpy as np
-
-from visualize import ImagePlot
 
 
 class HsvFeature(AbstractFeature):
@@ -16,7 +15,6 @@ class HsvFeature(AbstractFeature):
         red_img = self.extract_color(yuv[:, :, 2])
         blue_img = self.extract_color(yuv[:, :, 1])
         black_img = self.extract_color(1 - yuv[:, :, 0])
-
         ratio_img = RatioTransform().process(img.image)
         # RED WHITE OVERLAP
         overlap = red_img * white_img
@@ -70,8 +68,6 @@ class HsvFeature(AbstractFeature):
                                np.ravel(ResizeTransform(10).process(blue_img) > 0.5),
                                np.ravel(ResizeTransform(10).process(black_img) > 0.5),
                                np.ravel(ResizeTransform(10).process(white_img) > 0.5)))
-
-
 
     def rescale_values(self, img):
         img[:, :, 1] = (img[:, :, 1] + 0.436)/(0.436 * 2)
