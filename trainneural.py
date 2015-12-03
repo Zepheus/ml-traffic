@@ -21,6 +21,7 @@ import theano.tensor as T
 import lasagne
 
 
+# Convert images to one numpy array of dimension (images, color_channels, w, h)
 def images_to_vectors(imgs, size, num_dimensions=3):
     vect = np.zeros((len(imgs), num_dimensions, size, size), dtype=np.float32)  # Assume 3 channels
     for idx, img in enumerate(imgs):
@@ -36,6 +37,7 @@ def load_images(directories, is_train=False, permute=True):
     return load(directories, is_train, permute)
 
 
+# Resize and/or convert images to grayscale
 def postprocess(imgs, size, grayscale=False):
     print("Postprocessing images and resize (at %d)" % size)
     keyname = ('gray_%d' if grayscale else 'color_%d') % size
@@ -52,12 +54,14 @@ def postprocess(imgs, size, grayscale=False):
         img.setByName(keyname, floatimg)  # expect to return floats
 
 
+# Augment images
 def augmentation(images):
     transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
                      [SqueezeTransform(), MirrorTransform()]
     return augment_images(images, transforms)
 
 
+# First neural network structure
 def build_rgb_cnn(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
 
@@ -77,6 +81,7 @@ def build_rgb_cnn(input_size, input_var=None):
         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
+    # Maxpooled layer:
     network = lasagne.layers.DenseLayer(
         lasagne.layers.dropout(network, p=0.5),
         num_units=256,
@@ -95,6 +100,8 @@ def build_rgb_cnn(input_size, input_var=None):
 
     return network
 
+
+# Build second simple neural network
 def build_rgb_cnn_2(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
 
@@ -118,6 +125,7 @@ def build_rgb_cnn_2(input_size, input_var=None):
     return network
 
 
+# Build grayscale neural network
 def build_grayscale_cnn(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 1, input_size, input_size), input_var=input_var)
 
@@ -137,6 +145,7 @@ def build_grayscale_cnn(input_size, input_var=None):
         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
 
+    # Maxpooled
     network = lasagne.layers.DenseLayer(
         lasagne.layers.dropout(network, p=0.5),
         num_units=256,
@@ -185,11 +194,10 @@ def build_network(network, input_var, target_var, learning_rate=0.005, momentum=
     prediction = lasagne.layers.get_output(network)
     loss = lasagne.objectives.categorical_crossentropy(prediction, target_var)
     loss = loss.mean()
-    # We could add some weight decay as well here, see lasagne.regularization.
 
     # Create update expressions for training, i.e., how to modify the
     # parameters at each training step. Here, we'll use Stochastic Gradient
-    # Descent (SGD) with Nesterov momentum, but Lasagne offers plenty more.
+    # Descent (SGD) with Nesterov momentum
     params = lasagne.layers.get_all_params(network, trainable=True)
     updates = lasagne.updates.nesterov_momentum(
         loss, params, learning_rate=learning_rate, momentum=momentum)
@@ -201,7 +209,7 @@ def build_network(network, input_var, target_var, learning_rate=0.005, momentum=
     test_loss = lasagne.objectives.categorical_crossentropy(test_prediction,
                                                             target_var)
     test_loss = test_loss.mean()
-    # As a bonus, also create an expression for the classification accuracy:
+    # Also create an expression for the classification accuracy:
     test_acc = T.mean(T.eq(T.argmax(test_prediction, axis=1), target_var),
                       dtype=theano.config.floatX)
 
@@ -218,6 +226,7 @@ def build_network(network, input_var, target_var, learning_rate=0.005, momentum=
     return train_fn, val_fn, predict_fn
 
 
+# Train the model by iterating over the batches and doing backprop
 def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show_validation=True):
         print("Starting training...")
 
@@ -230,7 +239,7 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show
             train_batches = 0
             start_time = time.time()
 
-            for batch in iterate_minibatches(X_train, y_train, 256, shuffle=True):
+            for batch in iterate_minibatches(X_train, y_train, 256, shuffle=True):  # 256 to match cuDNN size
                 inputs, targets = batch
                 train_err += train_fn(inputs, targets)
                 train_batches += 1
@@ -266,16 +275,18 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show
             return training_loss
 
 
+# Predict probabilities
 def predict(predict_fn, x_test):
     return predict_fn(x_test)
 
 
+# Dump probabilities to CSV
 def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
     file = open(filename, 'w')
     file.write('Id,%s\n' % str.join(',', id_to_class))
     for idx, img in enumerate(test_images):
         probs = predictions[idx]
-        thesum = np.sum(probs)
+        thesum = np.sum(probs)  # Check if total sum of the array is 1, disregarding some floating point errors
         if abs(thesum - 1.0) > 0.01:
             print('Warning: Incorrect probabilities for %d' % img.identifier)
         file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % (p if p < 1.0 else 1.0)) for p in probs])))  # Take care of floating point rounding errors
@@ -283,7 +294,8 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv'):
     file.close()
 
 
-def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, grayscale=False, augment=True):
+# Perform cross validation on a training set
+def cross_validate(train_dir, network, num_epochs, input_size, num_folds=5, grayscale=False, augment=True):
     print('Cross-validation using %d folds' % num_folds)
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
@@ -305,11 +317,15 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, gray
         postprocess(trainset, size=input_size, grayscale=grayscale)
         postprocess(valset, size=input_size, grayscale=grayscale)
 
+        # Get their numpy vectors to feed to lasagne
         x_train = images_to_vectors(trainset, input_size, num_dimensions=1 if grayscale else 3)
         x_val = images_to_vectors(valset, input_size, num_dimensions=1 if grayscale else 3)
 
+        # Convert classes to uin8 indices
         y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
         y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
+
+        # Prepare theano tensors for classes and inputs
         input_var = T.tensor4('inputs')
         target_var = T.ivector('targets')
 
@@ -334,6 +350,8 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=2, gray
     print('Mean training accuracy: %f (std %f)' % (mean_accuracy, std_val_acc))
 
 
+# Train a single model. Evaluate using a validation set first to estimate where the model is going.
+# Flip is the argument on which the model switches to the full dataset
 def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epochs=400, flip=200, input_size=45,
                       learning_rate=0.005, gray=False, augment=True):
     assert(num_epochs > flip)
@@ -343,37 +361,37 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
     classes_set = list(sorted(set(training_labels)))
     class_to_index = {key: index for index, key in enumerate(classes_set)}
 
-    # Create validation and training set
-    (trainset, valset) = split_special(train_images, 2, True)[0]  # Use the old validation way
-
-    if augment:
-        print("Augmenting trainset images")
-        trainset = augmentation(trainset)
-        print("Augmented to %d images" % len(trainset))
-
-    print('Post processing train and validation set')
-    postprocess(trainset, size=input_size, grayscale=gray)
-    postprocess(valset, size=input_size, grayscale=gray)
-
-    x_train = images_to_vectors(trainset, input_size, num_dimensions=1 if gray else 3)
-    x_val = images_to_vectors(valset, input_size, num_dimensions=1 if gray else 3)
-
-    for img in train_images:
-        img.disposeImage()
-
-    y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
-    y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
+    print('Building network...')
     input_var = T.tensor4('inputs')
     target_var = T.ivector('targets')
-
-    print('Building network...')
     neural_network = network(input_size, input_var)
     train_fn, val_fn, predict_fn = build_network(neural_network, input_var, target_var, learning_rate=learning_rate)
 
-    print('Training %d iterations as a warmup' % flip)
-    train(train_fn, val_fn, x_train, y_train, x_val, y_val, flip, show_validation=True)
+    if flip > 0:
+        # Create validation and training set
+        (trainset, valset) = split_special(train_images, 2, True)[0]  # Use the old validation way
 
-    # Flip
+        if augment:
+            print("Augmenting trainset images")
+            trainset = augmentation(trainset)
+            print("Augmented to %d images" % len(trainset))
+
+        print('Post processing train and validation set')
+        postprocess(trainset, size=input_size, grayscale=gray)
+        postprocess(valset, size=input_size, grayscale=gray)
+
+        x_train = images_to_vectors(trainset, input_size, num_dimensions=1 if gray else 3)
+        x_val = images_to_vectors(valset, input_size, num_dimensions=1 if gray else 3)
+
+        for img in train_images:
+            img.disposeImage()
+
+        y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
+        y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
+        print('Training %d iterations as a warmup' % flip)
+        train(train_fn, val_fn, x_train, y_train, x_val, y_val, flip, show_validation=True)
+
+    # Flip or fully train
     train_images = load_images(train_dir, is_train=True, permute=False)
     train_images = augmentation(train_images)
     postprocess(train_images, input_size)
@@ -381,7 +399,10 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
     y_train = np.concatenate(np.array([[class_to_index[img.label] for img in train_images]], dtype=np.uint8))
 
     print('Training %d iterations on full set' % (num_epochs - flip))
-    train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs - flip, show_validation=False)
+    train(train_fn, val_fn, x_train, y_train,
+          None if flip <= 0 else x_val, None if flip <= 0 else y_val,
+          num_epochs if flip <= 0 else num_epochs - flip,
+          show_validation=False)
 
     # Predict
     print('Predicting testset')
