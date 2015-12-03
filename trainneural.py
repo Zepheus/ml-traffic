@@ -33,11 +33,9 @@ def images_to_vectors(imgs, size, num_dimensions=3):
 def load_images(directories, is_train=False, permute=True):
     return load(directories, is_train, permute)
 
-
 def kaggle_logloss(act, pred):
     pred = np.clip(pred, 1e-10, 1 - 1e-10)
     return -np.sum(act * np.log(pred)) / act.shape[0]
-
 
 def logloss(predictions, weights, y_val, num_classes=81):
     assert (abs(sum(weights) - 1) < 0.0001)
@@ -274,13 +272,11 @@ def train(train_fn, val_fn, pred_fn, X_train, y_train, X_val, y_val, num_epochs=
         # And a full pass over the validation data:
         if show_validation:
             val_err = 0
-            own_val_err = 0
             val_acc = 0
             val_batches = 0
             for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
                 inputs, targets = batch
                 err, acc = val_fn(inputs, targets)
-                own_val_err += logloss([pred_fn(inputs)], [1], targets)
                 val_err += err
                 val_acc += acc
                 val_batches += 1
@@ -293,7 +289,6 @@ def train(train_fn, val_fn, pred_fn, X_train, y_train, X_val, y_val, num_epochs=
         if show_validation:
             val_loss = val_err / val_batches
             validation_acc = val_acc / val_batches * 100
-            print("  Own validation error: \t\t{:.6f}".format(own_val_err / val_batches))
             print("  validation loss:\t\t{:.6f}".format(val_loss))
             print("  validation accuracy:\t\t{:.2f} %".format(validation_acc))
 
@@ -336,12 +331,25 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv', comb
 
 
 # Perform cross validation on a training set
-def cross_validate(train_dir, network, num_epochs, input_size, num_folds=5, grayscale=False, augment=True):
+def cross_validate(train_dir, networks, weights, epochs, input_sizes, learning_rates, grays, num_folds=5, augment=True):
     print('Cross-validation using %d folds' % num_folds)
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
     classes_set = list(sorted(set(training_labels)))
     class_to_index = {key: index for index, key in enumerate(classes_set)}
+
+    if not isinstance(networks, list):
+        networks = [networks]
+    if not isinstance(weights, list):
+        weights = [weights]
+    if not isinstance(epochs, list):
+        epochs = [epochs]
+    if not isinstance(input_sizes, list):
+        input_sizes = [input_sizes]
+    if not isinstance(learning_rates, list):
+        learning_rates = [learning_rates]
+    if not isinstance(grays, list):
+        grays = [grays]
 
     # Create validation and training set
     val_losses = []
@@ -349,48 +357,60 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=5, gray
     val_accs = []
 
     for trainset, valset in split_special(train_images, num_folds, num_folds == 2):
-        print('Evaluating fold...')
+
+        # For each network in ensemble (if available)
+        predictions = []
+        print('Evaluating fold... (%d models in ensemble)' % len(weights))
         if augment:
             trainset = augmentation(trainset)
             print("Augmented to %d images" % len(trainset))
-
-        # Postprocess images
-        postprocess(trainset, size=input_size, grayscale=grayscale)
-        postprocess(valset, size=input_size, grayscale=grayscale)
-
-        # Get their numpy vectors to feed to lasagne
-        x_train = images_to_vectors(trainset, input_size, num_dimensions=1 if grayscale else 3)
-        x_val = images_to_vectors(valset, input_size, num_dimensions=1 if grayscale else 3)
 
         # Convert classes to uin8 indices
         y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
         y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
 
-        # Prepare theano tensors for classes and inputs
-        input_var = T.tensor4('inputs')
-        target_var = T.ivector('targets')
+        for input_size, network, num_epochs, gray, learning_rate in zip(input_sizes, networks, epochs,
+                                                                    grays, learning_rates):
+            # Postprocess images
+            postprocess(trainset, size=input_size, grayscale=gray)
+            postprocess(valset, size=input_size, grayscale=gray)
 
-        neural_network = network(input_size, input_var)
-        print_network(neural_network)
-        train_fn, val_fn, predict_fn = build_network(neural_network, input_var, target_var)
-        training_loss, val_loss, val_acc = train(train_fn, val_fn, predict_fn, x_train, y_train, x_val, y_val,
-                                                 num_epochs)
+            # Get their numpy vectors to feed to lasagne
+            x_train = images_to_vectors(trainset, input_size, num_dimensions=1 if gray else 3)
+            x_val = images_to_vectors(valset, input_size, num_dimensions=1 if gray else 3)
 
-        val_losses.append(val_loss)
-        train_losses.append(training_loss)
-        val_accs.append(val_acc)
+            # Prepare theano tensors for classes and inputs
+            input_var = T.tensor4('inputs')
+            target_var = T.ivector('targets')
+
+            neural_network = network(input_size, input_var)
+            train_fn, val_fn, predict_fn = build_network(neural_network, input_var, target_var)
+            training_loss, val_loss, val_acc = train(train_fn, val_fn, predict_fn, x_train, y_train, x_val, y_val,
+                                                     num_epochs)
+            predictions.append(predict(predict_fn, x_val))
+
+            if len(weights) <= 1:
+                val_losses.append(val_loss)
+                train_losses.append(training_loss)
+                val_accs.append(val_acc)
+        # Calculate weighted logloss for this fold
+        if len(weights) > 1:
+            val_losses.append(logloss(predictions, weights, y_val, num_classes=81))
 
     # Process metrics
-    mean_val_loss = np.mean(val_losses)
-    mean_train_loss = np.mean(train_losses)
-    mean_accuracy = np.mean(val_accs)
-    std_val_loss = np.std(val_losses)
-    std_val_acc = np.std(val_accs)
-    std_train_loss = np.std(train_losses)
+    if len(weights) <= 1:
+        mean_val_loss = np.mean(val_losses)
+        mean_train_loss = np.mean(train_losses)
+        mean_accuracy = np.mean(val_accs)
+        std_val_loss = np.std(val_losses)
+        std_val_acc = np.std(val_accs)
+        std_train_loss = np.std(train_losses)
 
-    print('Mean validation loss: %f (std: %f)' % (mean_val_loss, std_val_loss))
-    print('Mean training loss: %f (std: %f)' % (mean_train_loss, std_train_loss))
-    print('Mean training accuracy: %f (std %f)' % (mean_accuracy, std_val_acc))
+        print('Mean validation loss: %f (std: %f)' % (mean_val_loss, std_val_loss))
+        print('Mean training loss: %f (std: %f)' % (mean_train_loss, std_train_loss))
+        print('Mean training accuracy: %f (std %f)' % (mean_accuracy, std_val_acc))
+    else:
+        print('Weighted logloss: %f (std %f)' %(np.mean(val_losses), np.std(val_losses)))
 
 
 # Train a single model. Evaluate using a validation set first to estimate where the model is going.
@@ -408,6 +428,7 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
     input_var = T.tensor4('inputs')
     target_var = T.ivector('targets')
     neural_network = network(input_size, input_var)
+    print_network(neural_network)
     train_fn, val_fn, predict_fn = build_network(neural_network, input_var, target_var, learning_rate=learning_rate)
 
     if flip > 0:
@@ -458,7 +479,7 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
     print('Finished.')
 
 
-def train_ensemble(train_dir, test_dir,
+def train_and_predict_ensemble(train_dir, test_dir,
                    networks=[build_rgb_cnn], weights=[1.0], epochs=[400], input_sizes=[45],
                    learning_rates=[0.005], grays=[False], augment=True):
     assert (sum(weights) - 1 <= 0.001)
@@ -548,5 +569,13 @@ def train_ensemble(train_dir, test_dir,
 # train_single_with_warmup(['data/train'],  ['data/test'],
 #                         build_rgb_cnn, 400, flip=200, input_size=45, learning_rate=0.005, gray=False, augment=True)
 
-cross_validate(['data/train'], build_rgb_cnn, num_epochs=200, input_size=45, num_folds=5, augment=True)
+# Example of evaluating one model:
+cross_validate(['data/train'],
+               networks=(build_rgb_cnn),
+               epochs=(10),
+               input_sizes=(45),
+               weights=(1),
+               learning_rates=(0.005),
+               grays=(False),
+               num_folds=5, augment=True)
 # cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
