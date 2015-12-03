@@ -19,12 +19,12 @@ class PerspectiveTransform(AbstractPrep):
             im = np.fliplr(im)
 
         # slope of the perspective
-        dir = tan(radians(self.degrees))
+        slope = tan(radians(self.degrees))
         (h, w, _) = im.shape
 
         matrix_trans = np.array([[1, 0, 0],
-                                [-dir/2, 1, dir * h / 2],
-                                [-dir/w, 0, 1 + dir]])
+                                [-slope/2, 1, slope * h / 2],
+                                [-slope/w, 0, 1 + slope]])
 
         trans = ProjectiveTransform(matrix_trans)
         img_trans = warp(im, trans)
