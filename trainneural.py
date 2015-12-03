@@ -13,7 +13,6 @@ import gc
 import numpy as np
 import theano
 import theano.tensor as T
-import scipy as sp
 # Neural
 import lasagne
 
@@ -33,12 +32,15 @@ def images_to_vectors(imgs, size, num_dimensions=3):
 def load_images(directories, is_train=False, permute=True):
     return load(directories, is_train, permute)
 
+
 def kaggle_logloss(act, pred):
     pred = np.clip(pred, 1e-10, 1 - 1e-10)
     return -np.sum(act * np.log(pred)) / act.shape[0]
 
+
 def logloss(predictions, weights, y_val, num_classes=81):
     assert (abs(sum(weights) - 1) < 0.0001)
+    assert(len(predictions) == len(weights))
     num_samples = y_val.shape[0]
 
     if len(weights) > 1:
@@ -333,23 +335,26 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv', comb
 # Perform cross validation on a training set
 def cross_validate(train_dir, networks, weights, epochs, input_sizes, learning_rates, grays, num_folds=5, augment=True):
     print('Cross-validation using %d folds' % num_folds)
+    if len(weights) > 1:
+        print('Using weights %s' % str.join(',', [str(x) for x in weights]))
+
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
     classes_set = list(sorted(set(training_labels)))
     class_to_index = {key: index for index, key in enumerate(classes_set)}
 
-    if not isinstance(networks, list):
-        networks = [networks]
-    if not isinstance(weights, list):
-        weights = [weights]
-    if not isinstance(epochs, list):
-        epochs = [epochs]
-    if not isinstance(input_sizes, list):
-        input_sizes = [input_sizes]
-    if not isinstance(learning_rates, list):
-        learning_rates = [learning_rates]
-    if not isinstance(grays, list):
-        grays = [grays]
+    if not isinstance(networks, tuple):
+        networks = (networks)
+    if not isinstance(weights, tuple):
+        weights = (weights)
+    if not isinstance(epochs, tuple):
+        epochs = (epochs)
+    if not isinstance(input_sizes, tuple):
+        input_sizes = (input_sizes)
+    if not isinstance(learning_rates, tuple):
+        learning_rates = (learning_rates)
+    if not isinstance(grays, tuple):
+        grays = (grays)
 
     # Create validation and training set
     val_losses = []
@@ -387,12 +392,15 @@ def cross_validate(train_dir, networks, weights, epochs, input_sizes, learning_r
             train_fn, val_fn, predict_fn = build_network(neural_network, input_var, target_var)
             training_loss, val_loss, val_acc = train(train_fn, val_fn, predict_fn, x_train, y_train, x_val, y_val,
                                                      num_epochs)
-            predictions.append(predict(predict_fn, x_val))
 
             if len(weights) <= 1:
                 val_losses.append(val_loss)
                 train_losses.append(training_loss)
                 val_accs.append(val_acc)
+            else:
+                weighted_logloss = predict(predict_fn, x_val)
+                print('Weighted logloss of fold: %f' % weighted_logloss)
+                predictions.append(weighted_logloss)
         # Calculate weighted logloss for this fold
         if len(weights) > 1:
             val_losses.append(logloss(predictions, weights, y_val, num_classes=81))
@@ -570,12 +578,24 @@ def train_and_predict_ensemble(train_dir, test_dir,
 #                         build_rgb_cnn, 400, flip=200, input_size=45, learning_rate=0.005, gray=False, augment=True)
 
 # Example of evaluating one model:
-cross_validate(['data/train'],
-               networks=(build_rgb_cnn),
-               epochs=(10),
-               input_sizes=(45),
-               weights=(1),
-               learning_rates=(0.005),
-               grays=(False),
-               num_folds=5, augment=True)
+# cross_validate(['data/train'],
+#                networks=(build_rgb_cnn),
+#                epochs=(10),
+#                input_sizes=(45),
+#                weights=(1),
+#                learning_rates=(0.005),
+#                grays=(False),
+#                num_folds=2, augment=True)
+
+# Example of evaluating an ensemble 50/50
+# cross_validate(['data/train'],
+#                networks=(build_rgb_cnn, build_rgb_cnn_2),
+#                epochs=(10, 10),
+#                input_sizes=(45, 48),
+#                weights=(0.5, 0.5),
+#                learning_rates=(0.005, 0.005),
+#                grays=(False, False),
+#                num_folds=2, augment=True)
+
+
 # cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
