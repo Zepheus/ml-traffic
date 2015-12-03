@@ -61,6 +61,14 @@ def augmentation(images):
     return augment_images(images, transforms)
 
 
+def print_network(network):
+    print('Network:')
+    layers = lasagne.layers.get_all_layers(network)
+    for layer in layers:
+        shape = lasagne.layers.get_output_shape(layer)
+        print('\t%s layer with output shape %s' % (type(layer).__name__, shape))
+
+
 # First neural network structure
 def build_rgb_cnn(input_size, input_var=None):
     network = lasagne.layers.InputLayer(shape=(None, 3, input_size, input_size), input_var=input_var)
@@ -239,7 +247,7 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show
             train_batches = 0
             start_time = time.time()
 
-            for batch in iterate_minibatches(X_train, y_train, 256, shuffle=True):  # 256 to match cuDNN size
+            for batch in iterate_minibatches(X_train, y_train, 510, shuffle=True):
                 inputs, targets = batch
                 train_err += train_fn(inputs, targets)
                 train_batches += 1
@@ -249,7 +257,7 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show
                 val_err = 0
                 val_acc = 0
                 val_batches = 0
-                for batch in iterate_minibatches(X_val, y_val, 256, shuffle=False):
+                for batch in iterate_minibatches(X_val, y_val, 510, shuffle=False):
                     inputs, targets = batch
                     err, acc = val_fn(inputs, targets)
                     val_err += err
@@ -277,7 +285,11 @@ def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show
 
 # Predict probabilities
 def predict(predict_fn, x_test):
-    return predict_fn(x_test)
+    num_samples = x_test.shape[0]
+    prediction = np.empty((num_samples, 81), dtype=np.float32)
+    for i in range(num_samples):  # Test each sample separately due to memory constraints on GPU
+        prediction[i, :] = predict_fn(np.array([x_test[i, :, :, :]]))
+    return prediction
 
 
 # Dump probabilities to CSV
@@ -330,6 +342,7 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=5, gray
         target_var = T.ivector('targets')
 
         neural_network = network(input_size, input_var)
+        print_network(neural_network)
         train_fn, val_fn, predict_fn = build_network(neural_network, input_var, target_var)
         training_loss, val_loss, val_acc = train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs)
 
@@ -492,17 +505,18 @@ def train_ensemble(train_dir, test_dir,
     write_csv(test_images, predictions, class_to_index)
     print("Finished")
 
-# train_ensemble(['data/train'],  ['data/test'],
-#     networks=[build_rgb_cnn, build_rgb_cnn_2],
-#     learning_rates=[0.005, 0.005],
-#     grays=[False, False],
-#     input_sizes=[45, 48],
-#     weights=[0.7, 0.3],
-#     epochs=[200, 200],
-#     augment=True)
+train_ensemble(['data/train'],  ['data/test'],
+    networks=[build_rgb_cnn, build_rgb_cnn_2],
+    learning_rates=[0.005, 0.005],
+    grays=[False, False],
+    input_sizes=[45, 48],
+    weights=[0.8, 0.2],
+    epochs=[5, 5],
+    #epochs=[230, 200],
+    augment=True)
 
-train_single_with_warmup(['data/train'],  ['data/test'],
-                         build_rgb_cnn, 400, flip=200, input_size=45, learning_rate=0.005, gray=False, augment=True)
+#train_single_with_warmup(['data/train'],  ['data/test'],
+#                         build_rgb_cnn, 400, flip=200, input_size=45, learning_rate=0.005, gray=False, augment=True)
 
-#cross_validate(['data/train'], build_rgb_cnn_2, num_epochs=200, input_size=48, num_folds=2, augment=True)
+#cross_validate(['data/train'], build_rgb_cnn_2, num_epochs=200, input_size=45, num_folds=5, augment=True)
 #cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
