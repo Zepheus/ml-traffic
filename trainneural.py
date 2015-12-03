@@ -2,21 +2,18 @@
 from image_loader import load, augment_images
 from cross_validation import split_special
 from preps import RotateTransform, SqueezeTransform, MirrorTransform, PerspectiveTransform
-
 # Skimage
 from skimage.transform import resize
 from skimage import exposure, img_as_float
 from skimage.color import rgb2gray
-
 # OS
 import time
 import gc
-
 # Scientific
 import numpy as np
 import theano
 import theano.tensor as T
-
+import scipy as sp
 # Neural
 import lasagne
 
@@ -35,6 +32,29 @@ def images_to_vectors(imgs, size, num_dimensions=3):
 
 def load_images(directories, is_train=False, permute=True):
     return load(directories, is_train, permute)
+
+
+def kaggle_logloss(act, pred):
+    pred = np.clip(pred, 1e-10, 1 - 1e-10)
+    return -np.sum(act * np.log(pred)) / act.shape[0]
+
+
+def logloss(predictions, weights, y_val, num_classes=81):
+    assert (abs(sum(weights) - 1) < 0.0001)
+    num_samples = y_val.shape[0]
+
+    if len(weights) > 1:
+        final_pred = np.zeros((num_samples, num_classes))
+        for pred, w in zip(predictions, weights):
+            final_pred = final_pred + (w * pred)
+    else:
+        final_pred = predictions[0]
+
+    # Convert to kaggle format
+    vals = np.zeros((num_samples, num_classes))
+    for idx, val_y in enumerate(y_val):
+        vals[idx][val_y] = 1
+    return kaggle_logloss(vals, final_pred)
 
 
 # Resize and/or convert images to grayscale
@@ -57,7 +77,7 @@ def postprocess(imgs, size, grayscale=False):
 # Augment images
 def augmentation(images):
     transforms = list([RotateTransform(degrees) for degrees in [-10, -7.0, 7.0, 10]]) + \
-                     [SqueezeTransform(), MirrorTransform()]
+                 [SqueezeTransform(), MirrorTransform()]
     return augment_images(images, transforms)
 
 
@@ -173,7 +193,6 @@ def build_grayscale_cnn(input_size, input_var=None):
     return network
 
 
-
 # ############################# Batch iterator ###############################
 # This is just a simple helper function iterating over training data in
 # mini-batches of a particular size, optionally in random order. It assumes
@@ -235,52 +254,55 @@ def build_network(network, input_var, target_var, learning_rate=0.005, momentum=
 
 
 # Train the model by iterating over the batches and doing backprop
-def train(train_fn, val_fn, X_train, y_train, X_val, y_val, num_epochs=500, show_validation=True):
-        print("Starting training...")
+def train(train_fn, val_fn, pred_fn, X_train, y_train, X_val, y_val, num_epochs=500, show_validation=True):
+    print("Starting training...")
 
-        training_loss = 0
-        val_loss = 0
-        validation_acc = 0
-        for epoch in range(num_epochs):
-            # In each epoch, we do a full pass over the training data:
-            train_err = 0
-            train_batches = 0
-            start_time = time.time()
+    training_loss = 0
+    val_loss = 0
+    validation_acc = 0
+    for epoch in range(num_epochs):
+        # In each epoch, we do a full pass over the training data:
+        train_err = 0
+        train_batches = 0
+        start_time = time.time()
 
-            for batch in iterate_minibatches(X_train, y_train, 500, shuffle=True):
+        for batch in iterate_minibatches(X_train, y_train, 500, shuffle=True):
+            inputs, targets = batch
+            train_err += train_fn(inputs, targets)
+            train_batches += 1
+
+        # And a full pass over the validation data:
+        if show_validation:
+            val_err = 0
+            own_val_err = 0
+            val_acc = 0
+            val_batches = 0
+            for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
                 inputs, targets = batch
-                train_err += train_fn(inputs, targets)
-                train_batches += 1
+                err, acc = val_fn(inputs, targets)
+                own_val_err += logloss([pred_fn(inputs)], [1], targets)
+                val_err += err
+                val_acc += acc
+                val_batches += 1
 
-            # And a full pass over the validation data:
-            if show_validation:
-                val_err = 0
-                val_acc = 0
-                val_batches = 0
-                for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
-                    inputs, targets = batch
-                    err, acc = val_fn(inputs, targets)
-                    val_err += err
-                    val_acc += acc
-                    val_batches += 1
-
-            timediff = time.time() - start_time
-            training_loss = train_err / train_batches
-            print("Epoch {} of {} took {:.3f}s".format(epoch + 1, num_epochs, timediff))
-            print("  training loss:\t\t{:.6f}".format(training_loss))
-
-            if show_validation:
-                val_loss = val_err / val_batches
-                validation_acc = val_acc / val_batches * 100
-                print("  validation loss:\t\t{:.6f}".format(val_loss))
-                print("  validation accuracy:\t\t{:.2f} %".format(validation_acc))
-
-        print('Finished %d iterations' % num_epochs)
+        timediff = time.time() - start_time
+        training_loss = train_err / train_batches
+        print("Epoch {} of {} took {:.3f}s".format(epoch + 1, num_epochs, timediff))
+        print("  training loss:\t\t{:.6f}".format(training_loss))
 
         if show_validation:
-            return training_loss, val_loss, validation_acc
-        else:
-            return training_loss
+            val_loss = val_err / val_batches
+            validation_acc = val_acc / val_batches * 100
+            print("  Own validation error: \t\t{:.6f}".format(own_val_err / val_batches))
+            print("  validation loss:\t\t{:.6f}".format(val_loss))
+            print("  validation accuracy:\t\t{:.2f} %".format(validation_acc))
+
+    print('Finished %d iterations' % num_epochs)
+
+    if show_validation:
+        return training_loss, val_loss, validation_acc
+    else:
+        return training_loss
 
 
 # Predict probabilities
@@ -294,7 +316,7 @@ def predict(predict_fn, x_test):
 
 # Dump probabilities to CSV
 def write_csv(test_images, predictions, id_to_class, filename='result.csv', combined=False):
-    assert(isinstance(test_images, list)) # do NOT pass a dictionary here
+    assert (isinstance(test_images, list))  # do NOT pass a dictionary here
 
     file = open(filename, 'w')
     file.write('Id,%s\n' % str.join(',', id_to_class))
@@ -305,7 +327,8 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv', comb
             print('Warning: Incorrect probabilities for %d' % img.identifier)
         if combined:
             # Take care of floating point rounding errors
-            file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % (p if p < 1.0 else 1.0)) for p in probs])))
+            file.write(
+                '%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % (p if p < 1.0 else 1.0)) for p in probs])))
         else:
             file.write('%d,%s\n' % (img.identifier, str.join(',', [('%.13f' % p) for p in probs])))
 
@@ -350,7 +373,8 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=5, gray
         neural_network = network(input_size, input_var)
         print_network(neural_network)
         train_fn, val_fn, predict_fn = build_network(neural_network, input_var, target_var)
-        training_loss, val_loss, val_acc = train(train_fn, val_fn, x_train, y_train, x_val, y_val, num_epochs)
+        training_loss, val_loss, val_acc = train(train_fn, val_fn, predict_fn, x_train, y_train, x_val, y_val,
+                                                 num_epochs)
 
         val_losses.append(val_loss)
         train_losses.append(training_loss)
@@ -372,8 +396,8 @@ def cross_validate(train_dir, network, num_epochs, input_size, num_folds=5, gray
 # Train a single model. Evaluate using a validation set first to estimate where the model is going.
 # Flip is the argument on which the model switches to the full dataset
 def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epochs=400, flip=200, input_size=45,
-                      learning_rate=0.005, gray=False, augment=True):
-    assert(num_epochs > flip)
+                             learning_rate=0.005, gray=False, augment=True):
+    assert (num_epochs > flip)
 
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
@@ -408,7 +432,7 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
         y_train = np.concatenate(np.array([[class_to_index[img.label] for img in trainset]], dtype=np.uint8))
         y_val = np.concatenate(np.array([[class_to_index[img.label] for img in valset]], dtype=np.uint8))
         print('Training %d iterations as a warmup' % flip)
-        train(train_fn, val_fn, x_train, y_train, x_val, y_val, flip, show_validation=True)
+        train(train_fn, val_fn, predict_fn, x_train, y_train, x_val, y_val, flip, show_validation=True)
 
     # Flip or fully train
     train_images = load_images(train_dir, is_train=True, permute=False)
@@ -418,7 +442,7 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
     y_train = np.concatenate(np.array([[class_to_index[img.label] for img in train_images]], dtype=np.uint8))
 
     print('Training %d iterations on full set' % (num_epochs - flip))
-    train(train_fn, val_fn, x_train, y_train,
+    train(train_fn, val_fn, predict_fn, x_train, y_train,
           None if flip <= 0 else x_val, None if flip <= 0 else y_val,
           num_epochs if flip <= 0 else num_epochs - flip,
           show_validation=False)
@@ -435,9 +459,9 @@ def train_single_with_warmup(train_dir, test_dir, network=build_rgb_cnn, num_epo
 
 
 def train_ensemble(train_dir, test_dir,
-                      networks=[build_rgb_cnn], weights=[1.0], epochs=[400], input_sizes=[45],
-                      learning_rates=[0.005], grays = [False], augment=True):
-    assert(sum(weights) - 1 <= 0.001)
+                   networks=[build_rgb_cnn], weights=[1.0], epochs=[400], input_sizes=[45],
+                   learning_rates=[0.005], grays=[False], augment=True):
+    assert (sum(weights) - 1 <= 0.001)
 
     train_images = load_images(train_dir, is_train=True, permute=False)
     training_labels = list([img.label for img in train_images])
@@ -455,7 +479,7 @@ def train_ensemble(train_dir, test_dir,
 
     i = 0
     for input_size, network, num_epochs, gray, learning_rate in zip(input_sizes, networks, epochs,
-                                                                              grays, learning_rates):
+                                                                    grays, learning_rates):
         i += 1
         print('Start training next network')
         postprocess(train_images, size=input_size, grayscale=gray)
@@ -476,7 +500,7 @@ def train_ensemble(train_dir, test_dir,
         train_fn, val_fn, predict_fn = build_network(convnet, input_var, target_var, learning_rate=learning_rate)
 
         print('Training network...')
-        train(train_fn, val_fn, x_train, y_train, None, None, num_epochs, show_validation=False)
+        train(train_fn, val_fn, predict_fn, x_train, y_train, None, None, num_epochs, show_validation=False)
 
         # Save network
         print('Saving model %d' % i)
@@ -511,17 +535,18 @@ def train_ensemble(train_dir, test_dir,
     write_csv(test_images, predictions, classes_set, combined=len(preds) > 1)
     print("Finished")
 
-train_ensemble(['data/train'],  ['data/test'],
-    networks=[build_rgb_cnn, build_rgb_cnn_2],
-    learning_rates=[0.005, 0.005],
-    grays=[False, False],
-    input_sizes=[45, 48],
-    weights=[0.8, 0.2],
-    epochs=[230, 200],
-    augment=True)
 
-#train_single_with_warmup(['data/train'],  ['data/test'],
+# train_ensemble(['data/train'],  ['data/test'],
+#     networks=[build_rgb_cnn, build_rgb_cnn_2],
+#     learning_rates=[0.005, 0.005],
+#     grays=[False, False],
+#     input_sizes=[45, 48],
+#     weights=[0.8, 0.2],
+#     epochs=[230, 200],
+#     augment=True)
+
+# train_single_with_warmup(['data/train'],  ['data/test'],
 #                         build_rgb_cnn, 400, flip=200, input_size=45, learning_rate=0.005, gray=False, augment=True)
 
-#cross_validate(['data/train'], build_rgb_cnn_2, num_epochs=200, input_size=45, num_folds=5, augment=True)
-#cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
+cross_validate(['data/train'], build_rgb_cnn, num_epochs=200, input_size=45, num_folds=5, augment=True)
+# cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
