@@ -25,10 +25,10 @@ def images_to_vectors(imgs, size, num_dimensions=3):
     vect = np.zeros((len(imgs), num_dimensions, size, size), dtype=np.float32)  # Assume 3 channels
     for idx, img in enumerate(imgs):
         if num_dimensions > 1:
-            rolled = np.rollaxis(img.getByName('color').astype(np.float32), 2, 0)
+            rolled = np.rollaxis(img.getByName('color_%d' % size).astype(np.float32), 2, 0)
             vect[idx, :, :, :] = rolled
         else:
-            vect[idx, 0, :, :] = img.getByName('gray').astype(np.float32)
+            vect[idx, 0, :, :] = img.getByName('gray_%d' % size).astype(np.float32)
     return vect
 
 
@@ -459,23 +459,29 @@ def train_ensemble(train_dir, test_dir,
 
         gc.collect()  # Force garbage collect
 
-    # Now take a weighted sample of all nets
-    predictions = np.zeros((len(test_images), len(class_to_index)))
-    for w, pred in zip(weights, preds):
-        predictions = predictions + (w * pred)
+    if len(preds) > 1:
+        # Now take a weighted sample of all nets
+        predictions = np.zeros((len(test_images), len(class_to_index)))
+        for w, pred in zip(weights, preds):
+            predictions = predictions + (w * pred)
+    else:
+        predictions = preds[0]
 
     # Predictions
     write_csv(test_images, predictions, class_to_index)
     print("Finished")
 
-train_ensemble(['data/train'],  ['data/test'],
-    networks=[build_rgb_cnn, build_rgb_cnn_2],
-    learning_rates=[0.005, 0.005],
-    grays=[False, False],
-    input_sizes=[45, 48],
-    weights=[0.7, 0.3],
-    epochs=[200, 200],
-    augment=True)
+# train_ensemble(['data/train'],  ['data/test'],
+#     networks=[build_rgb_cnn, build_rgb_cnn_2],
+#     learning_rates=[0.005, 0.005],
+#     grays=[False, False],
+#     input_sizes=[45, 48],
+#     weights=[0.7, 0.3],
+#     epochs=[200, 200],
+#     augment=True)
+
+train_single_with_warmup(['data/train'],  ['data/test'],
+                         build_rgb_cnn, 400, flip=200, input_size=45, learning_rate=0.005, gray=False, augment=True)
 
 #cross_validate(['data/train'], build_rgb_cnn_2, num_epochs=200, input_size=48, num_folds=2, augment=True)
 #cross_validate(['data/train'], build_grayscale_cnn, grayscale=True, num_epochs=150, input_size=45, num_folds=2, augment=True)
