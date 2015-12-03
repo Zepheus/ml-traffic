@@ -1,18 +1,30 @@
 from learn import AbstractLearner
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
+from sklearn import preprocessing
 
 
 class LinearSVCTrainer(AbstractLearner):
 
-    def __init__(self):
-        self.learner = SVC(C=1.0, kernel='linear', probability=True)
+    def __init__(self, penalty=1.0, scale=True, gamma='auto'):
+        self.learner = LinearSVC(C=1.0)
+        self.penalty = penalty
+        self.scale = scale
 
     def _train(self, x_train, y_train):
-        self.learner = self.learner.fit(x_train, y_train)
+        if self.scale:
+            self.scaler = preprocessing.StandardScaler().fit(x_train)
+            x_scaled = self.scaler.transform(x_train)
+            self.learner = self.learner.fit(x_scaled, y_train)
+        else:
+            self.learner = self.learner.fit(x_train, y_train)
 
     def _predict(self, x):
-        return self.learner.predict(x)
+        if self.scale:
+            x_scaled = self.scaler.transform(x)
+            return self.learner.predict(x_scaled)
+        else:
+            return self.learner.predict(x)
 
-    def predict_proba(self, x):
-        return self.learner.predict_proba(x)
+    def __str__(self):
+        return 'LinearSVC (penalty: %f)' % (self.penalty)
 

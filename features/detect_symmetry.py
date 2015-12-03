@@ -1,32 +1,32 @@
 import numpy as np
 
-from preps import BWTransform,ResizeTransform,PrepCombiner
-
+from preps import BWTransform, ResizeTransform, PrepCombiner
 from features import AbstractFeature
 
+
+# Detect symmetry within the image based on the residual image
 class DetectSymmetry(AbstractFeature):
+    # Initialise the feature with a size value indicating the size of the
+    # image after resizing (default 96) and a block size indicating the size
+    # of the residual image that will be used as feature
+    def __init__(self, size=96, block_size=2):
+        self.block_size = block_size
+        self.transform = PrepCombiner([ResizeTransform(size), BWTransform()])
 
-    def __init__(self, size=96, threshold=0.1, blocksize=2):
-        self.threshold = threshold
-        self.blocksize = blocksize
-        self.transform = PrepCombiner([ResizeTransform(size),BWTransform()])
-
-
+    # Process the feature to extract the residual image indicating the symmetry.
+    # The image is flipped horizontal/vertical and subtracted from the original
+    # image, yielding the residual image.
     def process(self, im):
         bw = im.prep(self.transform)
 
-        # Vertical residue
-        vertflipped = np.fliplr(bw) # flip horizontally
-        vertresidu = np.subtract(bw, vertflipped)
-        #idx = vertresidu[:, :] < self.threshold
-        #vertresidu[idx] = 0
-        vertFeatures = ResizeTransform(self.blocksize).process(vertresidu).flatten()
+        # Vertical residual
+        flipped_vert = np.fliplr(bw)
+        residual_vert = np.subtract(bw, flipped_vert)
+        feature_vert = ResizeTransform(self.block_size).process(residual_vert).flatten()
 
-        # Horizontal residue
-        horflipped = np.transpose(np.fliplr(np.transpose(bw)))
-        horresidu = np.subtract(bw, horflipped)
-        #idx = horresidu[:, :] < self.threshold
-        #horresidu[idx] = 0
-        horFeatures = ResizeTransform(self.blocksize).process(horresidu).flatten()
-        return np.concatenate((vertFeatures, horFeatures))
+        # Horizontal residual
+        flipped_hor = np.transpose(np.fliplr(np.transpose(bw)))
+        residual_hor = np.subtract(bw, flipped_hor)
+        feature_hor = ResizeTransform(self.block_size).process(residual_hor).flatten()
+        return np.concatenate((feature_vert, feature_hor))
 
