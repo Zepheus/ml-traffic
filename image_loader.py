@@ -112,7 +112,7 @@ def load(directories, is_train_data, permute=True):
                 if is_train_data:
                     label = os.path.basename(dirpath)
                 for fn in filenames:
-                    if ".png" not in fn:
+                    if '.png' not in fn:
                         break
                     if is_train_data:
                         values.append(LabelledImage(os.path.join(dirpath, fn), label))
