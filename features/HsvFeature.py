@@ -1,5 +1,5 @@
 from features import AbstractFeature
-from preps import RatioTransform
+from preps import RatioTransform, ResizeTransform
 from skimage.measure import regionprops, label
 from skimage import exposure
 import numpy as np
@@ -12,23 +12,66 @@ class HsvFeature(AbstractFeature):
         # Extract blue regions
         rgb2yuv = np.array([[0.299, 0.587, 0.114], [-0.14713, -0.28886, 0.436], [0.615, -0.51499, -0.10001]])
         yuv = self.rescale_values(np.dot(img.image, rgb2yuv.T))
-        ImagePlot().show("gray", yuv[:, :, 2])
         white_img = self.extract_color(yuv[:, :, 0])
         red_img = self.extract_color(yuv[:, :, 2])
         blue_img = self.extract_color(yuv[:, :, 1])
-        # Test if overlap
-        red_white_overlap = red_img * white_img
-        ratio_img = RatioTransform().process(img.image)
-        if np.sum(red_white_overlap) > 0:
-            RGB_avg = self.relative_proportions(red_white_overlap, ratio_img)
-            if np.abs(RGB_avg[0] - RGB_avg[1]) <= 0.2 and np.abs(RGB_avg[0] - RGB_avg[2]) <= 0.2:
-                red_img -= red_white_overlap
-            else:
-                white_img -= red_white_overlap
         black_img = self.extract_color(1 - yuv[:, :, 0])
-        ImagePlot().show("gray", white_img)
-        ImagePlot().show("gray", red_img)
-        ImagePlot().show("gray", blue_img)
+
+        ratio_img = RatioTransform().process(img.image)
+        # RED WHITE OVERLAP
+        overlap = red_img * white_img
+        if np.sum(overlap) > 0:
+            RGB_avg = self.relative_proportions(overlap, ratio_img)
+            if np.abs(RGB_avg[0] - RGB_avg[1]) <= 0.2 and np.abs(RGB_avg[0] - RGB_avg[2]) <= 0.2:
+                red_img -= overlap
+            else:
+                white_img -= overlap
+        # BLUE WHITE OVERLAP
+        overlap = blue_img * white_img
+        if np.sum(overlap) > 0:
+            RGB_avg = self.relative_proportions(overlap, ratio_img)
+            if np.abs(RGB_avg[0] - RGB_avg[1]) <= 0.2 and np.abs(RGB_avg[0] - RGB_avg[2]) <= 0.2:
+                blue_img -= overlap
+            else:
+                white_img -= overlap
+        # RED BLACK OVERLAP
+        overlap = red_img * black_img
+        if np.sum(overlap) > 0:
+            RGB_avg = self.relative_proportions(overlap, ratio_img)
+            if np.abs(RGB_avg[0] - RGB_avg[1]) <= 0.2 and np.abs(RGB_avg[0] - RGB_avg[2]) <= 0.2:
+                red_img -= overlap
+            else:
+                black_img -= overlap
+        # BLUE BLACK OVERLAP
+        overlap = blue_img * black_img
+        if np.sum(overlap) > 0:
+            RGB_avg = self.relative_proportions(overlap, ratio_img)
+            if np.abs(RGB_avg[0] - RGB_avg[1]) <= 0.2 and np.abs(RGB_avg[0] - RGB_avg[2]) <= 0.2:
+                blue_img -= overlap
+            else:
+                black_img -= overlap
+        # RED BLUE OVERLAP
+        overlap = blue_img * red_img
+        if np.sum(overlap) > 0:
+            RGB_avg = self.relative_proportions(overlap, ratio_img)
+            if RGB_avg[0] - RGB_avg[2] > 0:
+                blue_img -= overlap
+            else:
+                red_img -= overlap
+        # WHITE BLACK OVERLAP
+        overlap = black_img * white_img
+        if np.sum(overlap) > 0:
+            RGB_avg = self.relative_proportions(overlap, ratio_img)
+            if (RGB_avg[0] + RGB_avg[1] + RGB_avg[3]) >= 0.5 * 3:
+                white_img -= overlap
+            else:
+                black_img -= overlap
+        return np.concatenate((np.ravel(ResizeTransform(10).process(red_img) > 0.5),
+                               np.ravel(ResizeTransform(10).process(blue_img) > 0.5),
+                               np.ravel(ResizeTransform(10).process(black_img) > 0.5),
+                               np.ravel(ResizeTransform(10).process(white_img) > 0.5)))
+
+
 
     def rescale_values(self, img):
         img[:, :, 1] = (img[:, :, 1] + 0.436)/(0.436 * 2)
@@ -72,7 +115,7 @@ class HsvFeature(AbstractFeature):
             threshold = threshold + value_range * 0.01 if too_less_regions else threshold - value_range * 0.01
             max_iter += 1
         # Extract largest white-like region
-        print("Threshold: %.2f" % threshold)
+        # print("Threshold: %.2f" % threshold)
         largest_region_img = np.zeros_like(ratio_img)
         if len(props) == 0:
             return largest_region_img
