@@ -565,13 +565,22 @@ def train_and_predict_ensemble(train_dir, test_dir, networks, weights, epochs, i
 
 
 train_and_predict_ensemble(['data/train'],  ['data/test'],
-                           networks=(build_rgb_cnn, build_rgb_cnn_2, build_grayscale_cnn),
-                           learning_rates=(0.005, 0.005, 0.005),
-                           grays=(False, False, True),
-                           input_sizes=(45, 48, 45),
-                           weights=(0.5, 0.25, 0.25),
-                           epochs=(250, 200, 200),
+                           networks=(build_rgb_cnn, build_grayscale_cnn),
+                           learning_rates=(0.005, 0.005),
+                           grays=(False, True),
+                           input_sizes=(45, 45),
+                           weights=(0.6, 0.4),
+                           epochs=(300, 150),
                            augment=True)
+
+# train_and_predict_ensemble(['data/train'],  ['data/test'],
+#                            networks=(build_rgb_cnn, build_rgb_cnn_2, build_grayscale_cnn),
+#                            learning_rates=(0.005, 0.005, 0.005),
+#                            grays=(False, False, True),
+#                            input_sizes=(45, 48, 45),
+#                            weights=(0.5, 0.25, 0.25),
+#                            epochs=(250, 200, 200),
+#                            augment=True)
 
 # train_single_with_warmup(['data/train'],  ['data/test'],
 #                         build_rgb_cnn, 400, flip=200, input_size=45, learning_rate=0.005, gray=False, augment=True)
