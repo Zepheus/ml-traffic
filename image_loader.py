@@ -7,6 +7,7 @@ from random import shuffle
 from os.path import basename
 
 
+# This class represents an image and its metadata.
 class LabelledImage(object):
     def __init__(self, filename, label='Unknown'):
         self._image = None
@@ -15,13 +16,16 @@ class LabelledImage(object):
         self.features = {}
         self.preps = {}
 
+    # the real image data is lazy loaded
+    # only when this property is asked the image will be loaded
     @property
     def image(self):
         if self._image is None:
             self._image = io.imread(self.filename)
         return self._image
 
-    def disposeImage(self):
+    # dispose of the image data
+    def dispose_image(self):
         if self._image is not None:
             del self._image
             self._image = None
@@ -61,9 +65,11 @@ class LabelledImage(object):
     def getByName(self, name):
         return self.features[name]
 
-    def getFeatureVector(self):
+    # get a vector containing all features values
+    def get_feature_vector(self):
         return np.hstack([self.features[key] for key in sorted(self.features)])
 
+    # reset the value for this feature
     def reset(self, feature):
         if isinstance(feature, list):
             for f in feature:
@@ -71,10 +77,11 @@ class LabelledImage(object):
         else:
             del self.features[feature.key()]
 
-    def calcFeature(self, feature):
+    # caculate a feature for this image
+    def calculate_feature(self, feature):
         if isinstance(feature, list):
             for feature_single in feature:
-                self.calcFeature(feature_single)  # recursively calculate features
+                self.calculate_feature(feature_single)  # recursively calculate features
         else:
             if feature.key() not in self.features:
                 self.features[feature.key()] = feature.process(self)
@@ -91,32 +98,37 @@ class LabelledImage(object):
         return self.filename
 
 
+# add augmentation to every image
+# the augmentations are defined by the parameter "transforms"
 def augment_images(images, transforms):
-
     augmented = []
     for img in images:
         for idx, transform in enumerate(transforms):
             transformed = transform.process(img.image)
             newImage = LabelledImage("%s_aug_%d" % (img.filename, idx), img.label)
-            newImage.image = transformed # fix for lazy loading
+            newImage.image = transformed  # fix for lazy loading
             augmented.append(newImage)
     return images + augmented
 
 
+# Create LabelledImage instances for all images given
 def load(directories, is_train_data, permute=True):
     print('Loading images. Train: %r' % is_train_data)
     values = []
+    # iterate of all directories in the array recursive
     for directory in directories:
         for dirpath, dirnames, filenames in os.walk(directory):
-            if filenames:
-                # images = io.imread_collection(os.path.join(dirpath, '*.png'))
+            if filenames:  # if there are files in this directory
                 if is_train_data:
                     label = os.path.basename(dirpath)
                 for fn in filenames:
+                    if '.png' not in fn:
+                        break
                     if is_train_data:
                         values.append(LabelledImage(os.path.join(dirpath, fn), label))
                     else:
                         values.append(LabelledImage(os.path.join(dirpath, fn)))
+
     print('Loaded %d images.' % len(values))
     if permute:
         shuffle(values)
@@ -124,12 +136,7 @@ def load(directories, is_train_data, permute=True):
     return values
 
 
-def print_update(idx, total, name):
-    sys.stdout.write('\r    feature calculation [%d %%] (%s)'
-                     % (int(100.0 * float(idx) / total), name))
-    sys.stdout.flush()
-
-
+# calculates all given features for all the given images
 def feature_extraction(images, feature, verbose=True):
     if verbose:
         sys.stdout.write('')
@@ -138,6 +145,6 @@ def feature_extraction(images, feature, verbose=True):
             sys.stdout.write('\r    feature calculation [%d %%] (%s)'
                              % (int(100.0 * float(idx) / len(images)), image.filename))
             sys.stdout.flush()
-        image.calcFeature(feature)
+        image.calculate_feature(feature)
     if verbose:
         sys.stdout.write('\r    feature calculation [100 %]\n')

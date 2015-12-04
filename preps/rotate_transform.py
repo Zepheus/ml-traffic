@@ -4,6 +4,8 @@ import math
 from visualize import ImagePlot
 
 
+# This preprocessor rotates an image around its center,
+# and crops the remaining largest region
 class RotateTransform(AbstractPrep):
     def __init__(self, degrees, cropImage=True):
         self.degrees = degrees
@@ -18,7 +20,7 @@ class RotateTransform(AbstractPrep):
         side_long, side_short = (w, h) if width_is_longer else (h, w)
 
         # since the solutions for angle, -angle and 180-angle are all the same,
-        # if suffices to look at the first quadrant and the absolute values of sin,cos:
+        # it suffices to look at the first quadrant and the absolute values of sin,cos:
         sin_a, cos_a = abs(math.sin(angle)), abs(math.cos(angle))
         if side_short <= 2. * sin_a * cos_a * side_long:
             # half constrained case: two crop corners touch the longer side,
