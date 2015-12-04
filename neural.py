@@ -333,7 +333,7 @@ def write_csv(test_images, predictions, id_to_class, filename='result.csv', comb
 
 
 # Perform cross validation on a training set
-def cross_validate(train_dir, networks, weights, epochs, input_sizes, learning_rates, grays, num_folds=5, augment=True):
+def cross_validate_neural(train_dir, networks, weights, epochs, input_sizes, learning_rates, grays, num_folds=5, augment=True):
     print('Cross-validation using %d folds' % num_folds)
     if isinstance(weights, tuple) and len(weights) > 1:
         print('Using weights %s' % str.join(',', [str(x) for x in weights]))
@@ -562,66 +562,3 @@ def train_and_predict_ensemble(train_dir, test_dir, networks, weights, epochs, i
     # Predictions
     write_csv(test_images, predictions, classes_set, combined=len(preds) > 1)
     print("Finished")
-
-
-train_and_predict_ensemble(['data/train'],  ['data/test'],
-                           networks=(build_rgb_cnn, build_grayscale_cnn),
-                           learning_rates=(0.005, 0.005),
-                           grays=(False, True),
-                           input_sizes=(45, 45),
-                           weights=(0.6, 0.4),
-                           epochs=(300, 200),
-                           augment=True)
-
-# train_and_predict_ensemble(['data/train'],  ['data/test'],
-#                            networks=(build_rgb_cnn, build_rgb_cnn_2, build_grayscale_cnn),
-#                            learning_rates=(0.005, 0.005, 0.005),
-#                            grays=(False, False, True),
-#                            input_sizes=(45, 48, 45),
-#                            weights=(0.5, 0.25, 0.25),
-#                            epochs=(250, 200, 200),
-#                            augment=True)
-
-# train_single_with_warmup(['data/train'],  ['data/test'],
-#                         build_rgb_cnn, 400, flip=200, input_size=45, learning_rate=0.005, gray=False, augment=True)
-
-# Example of evaluating one model, explicitly takes tuples:
-# Trains default RGB network:
-# cross_validate(['data/train'],
-#                networks=(build_rgb_cnn, ),
-#                epochs=(10, ),
-#                input_sizes=(45, ),
-#                weights=(1, ),
-#                learning_rates=(0.005, ),
-#                grays=(False, ),
-#                num_folds=2, augment=True)
-
-# Trains grayscale network:
-# cross_validate(['data/train'],
-#                networks=(build_grayscale_cnn, ),
-#                grays=(True, ),
-#                epochs=(150, ),
-#                input_sizes=(45, ),
-#                weights=(1, ),
-#                learning_rates=(0.005, ),
-#                num_folds=2, augment=True)
-
-# Trains 2nd RGB network
-# cross_validate(['data/train'],
-#                networks=(build_rgb_cnn_2, ),
-#                grays=(False, ),
-#                epochs=(150, ),
-#                input_sizes=(45, ),
-#                weights=(1, ),
-#                learning_rates=(0.005, ),
-#                num_folds=2, augment=True)
-
-# Example of evaluating an ensemble 50/50
-# cross_validate(['data/train'],
-#                networks=(build_rgb_cnn, build_rgb_cnn_2),
-#                epochs=(10, 10),
-#                input_sizes=(45, 48),
-#                weights=(0.5, 0.5),
-#                learning_rates=(0.005, 0.005),
-#                grays=(False, False),
-#                num_folds=2, augment=True)

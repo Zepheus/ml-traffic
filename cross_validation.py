@@ -90,6 +90,7 @@ def extract_resized_images(images, size):
         buf[i, :, :, :] = img_data
     return buf
 
+
 def cross_validate(images, feature_combiner, trainer_function, k=10, augmented=True,
                    verbose=True, verboseFiles=False):
     # fold = split_kfold(images, k)
