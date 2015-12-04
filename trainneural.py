@@ -570,7 +570,7 @@ train_and_predict_ensemble(['data/train'],  ['data/test'],
                            grays=(False, True),
                            input_sizes=(45, 45),
                            weights=(0.6, 0.4),
-                           epochs=(300, 150),
+                           epochs=(300, 200),
                            augment=True)
 
 # train_and_predict_ensemble(['data/train'],  ['data/test'],
