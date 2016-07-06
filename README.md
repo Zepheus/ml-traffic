@@ -2,6 +2,8 @@
 
 This project will execute the training and prediction of traffic signs, based on the Kaggle competition [Here](https://inclass.kaggle.com/c/traffic-sign-recognition).
 
+It uses both a convolutional neural network (**Lasagne**) and Logistic Regression (**scikit-learn**) in combination with feature extraction through **scikit-image**. The models were trained on an NVidia GTX 960 with 2GB of memory.
+
 ## Executable files:
 The executable files are listed below with their respective functionality:
 
